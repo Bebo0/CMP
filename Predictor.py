@@ -22,12 +22,31 @@ class Predictor:
 		"""
 		self.subRedditName = subredditname
 		self.counter = Counter()
-		
+		self.karmaCounter = Counter()
+		#self.rankingScore = 0
+
 
 
     # FUNCTIONS:
-	def addArrToCounter(self, aos):
+	def addOccurenceAndKarmaToCounters(self, aos, karma):
 		""" Adds the occurence of all strings in given array to counter
+
+		ArrayOfStrings -> void
+
+		Arguments:
+			aos {ArrayOfStrings} -- contains all the words to be added to counter
+		"""
+
+		for word in aos:
+			if word in self.counter:
+				self.counter[word] += 1
+				self.karmaCounter[word] += karma
+			else:
+				self.counter[word] = 1
+				self.karmaCounter[word] += karma
+
+	def addKarmaToCounter(self, aos):
+		""" Adds karma score of every string to karmaCounter
 
 		ArrayOfStrings -> void
 
@@ -70,18 +89,18 @@ class Predictor:
 			# transforms all letters of the comment body to lowercase and transforms the comment from unicode to ascii for easier readability
 			strong = ''.join(comment.body).lower().encode('ascii','ignore')
 
-			self.parsingHelper(strong)
+			self.parsingHelper(strong, comment.score)
 		print "Successfully parsed comments!"
 
 
-	def parsingHelper(self, strong):
+	def parsingHelper(self, strong, karma):
 		""" Splits strong into individual strings then adds them to the counter 
 		
 		"""
 		allowedSymbols = string.letters + string.digits + ' ' + '\'' + '-'
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
-		self.addArrToCounter(aos)
+		self.addOccurenceAndKarmaToCounters(aos, karma)
 
 
 	def parsePostTitles(self, reddit):
@@ -97,10 +116,12 @@ class Predictor:
 		dateInitial = 1514507792 #1514453887 #1514078600 is December 25th, 2017 9:10pm PST. Convert time to UNIX time here: https://www.unixtimestamp.com/
 		dateEnd     = 1514535992 #1514507792   #1514265000 is December 26th, 2017 9:10pm PST
 
-		for comment in reddit.subreddit(self.subRedditName).submissions(dateInitial, dateEnd):
+		for post in reddit.subreddit(self.subRedditName).submissions(dateInitial, dateEnd):
 
-			strong = ''.join(comment.title).lower().encode('ascii','ignore')
-			self.parsingHelper(strong)
+			strong = ''.join(post.title).lower().encode('ascii','ignore')
+			self.parsingHelper(strong, post.score)
+			#print post.score
+			#print comment.downs
 
 		print "Successfully parsed post titles!"
 
@@ -120,9 +141,9 @@ class Predictor:
 
 def main():
 
-	bot = WordCounterBot('cryptocurrency')
-	bot.runBot(WordCounterBot.reddit)
-	print bot.counter
+	bot = Predictor('cryptocurrency')
+	bot.runBot(Predictor.reddit)
+	print bot.karmaCounter
 
 if __name__ == '__main__':
 	main()
