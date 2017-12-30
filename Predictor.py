@@ -1,6 +1,7 @@
 import praw 
 import string
 import re
+import math
 from collections import Counter
 from Authenticator import authenticate
 
@@ -21,44 +22,36 @@ class Predictor:
 			subredditname {string} -- the subreddit being parsed
 		"""
 		self.subRedditName = subredditname
-		self.counter = Counter()
-		self.karmaCounter = Counter()
+		self.counter       = Counter()
+		self.karmaCounter  = Counter()
+		self.ranking       = Counter() 
+		self.aggregateTime = Counter()
 		#self.rankingScore = 0
 
 
 
     # FUNCTIONS:
-	def addOccurenceAndKarmaToCounters(self, aos, karma):
-		""" Adds the occurence of all strings in given array to counter
+	def addOccurenceAndKarmaToCounters(self, aos, karma, time):
+		""" Adds the occurence and karma of all strings in given array to counters
 
-		ArrayOfStrings -> void
+		ArrayOfStrings Integer -> void
 
 		Arguments:
-			aos {ArrayOfStrings} -- contains all the words to be added to counter
+			aos   {ArrayOfStrings} -- contains all the words to be added to counters
+			karma {Integer}        -- the karma score
 		"""
 
 		for word in aos:
 			if word in self.counter:
-				self.counter[word] += 1
-				self.karmaCounter[word] += karma
+				self.counter[word]       += 1
+				self.karmaCounter[word]  += karma
+				self.aggregateTime[word] += time
+				self.rankingAlgorithm(word)
 			else:
-				self.counter[word] = 1
-				self.karmaCounter[word] += karma
-
-	def addKarmaToCounter(self, aos):
-		""" Adds karma score of every string to karmaCounter
-
-		ArrayOfStrings -> void
-
-		Arguments:
-			aos {ArrayOfStrings} -- contains all the words to be added to counter
-		"""
-
-		for word in aos:
-			if word in self.counter:
-				self.counter[word] += 1
-			else:
-				self.counter[word] = 1
+				self.counter[word]       = 1
+				self.karmaCounter[word]  = karma
+				self.aggregateTime[word] = time
+				self.rankingAlgorithm(word)
 
 
 	def authenticate():
@@ -89,18 +82,18 @@ class Predictor:
 			# transforms all letters of the comment body to lowercase and transforms the comment from unicode to ascii for easier readability
 			strong = ''.join(comment.body).lower().encode('ascii','ignore')
 
-			self.parsingHelper(strong, comment.score)
+			self.parsingHelper(strong, comment.score, comment.created_utc)
 		print "Successfully parsed comments!"
 
 
-	def parsingHelper(self, strong, karma):
+	def parsingHelper(self, strong, karma, time):
 		""" Splits strong into individual strings then adds them to the counter 
 		
 		"""
 		allowedSymbols = string.letters + string.digits + ' ' + '\'' + '-'
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
-		self.addOccurenceAndKarmaToCounters(aos, karma)
+		self.addOccurenceAndKarmaToCounters(aos, karma, time)
 
 
 	def parsePostTitles(self, reddit):
@@ -119,11 +112,26 @@ class Predictor:
 		for post in reddit.subreddit(self.subRedditName).submissions(dateInitial, dateEnd):
 
 			strong = ''.join(post.title).lower().encode('ascii','ignore')
-			self.parsingHelper(strong, post.score)
+			self.parsingHelper(strong, post.score, post.created_utc)
 			#print post.score
 			#print comment.downs
 
 		print "Successfully parsed post titles!"
+
+	def rankingAlgorithm(self, word):
+		""" ranks all words that appear in the counters depending on karma and how early the post was submitted on Reddit
+
+			
+		Arguments:
+			aggregateTime {Integer} -- the aggregate time of the submission of all the word's occurences
+		"""
+		if self.karmaCounter[word] > 0:
+			self.ranking[word] += (math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(1500000000*self.counter[word]))
+		else:
+			self.ranking[word] += self.aggregateTime[word]/(1500000000*self.counter[word])
+
+		
+
 
 
 	def runBot(self, reddit):
@@ -143,7 +151,7 @@ def main():
 
 	bot = Predictor('cryptocurrency')
 	bot.runBot(Predictor.reddit)
-	print bot.karmaCounter
+	print bot.ranking
 
 if __name__ == '__main__':
 	main()
