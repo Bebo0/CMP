@@ -2,6 +2,7 @@ import praw
 import string
 import re
 import math
+import pickle
 from collections import Counter
 from Authenticator import authenticate
 
@@ -126,9 +127,9 @@ class Predictor:
 			aggregateTime {Integer} -- the aggregate time of the submission of all the word's occurences
 		"""
 		if self.karmaCounter[word] > 0:
-			self.ranking[word] += (math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(1500000000*self.counter[word]))
+			self.ranking[word] += round((math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(1500000000*self.counter[word])), 2)
 		else:
-			self.ranking[word] += self.aggregateTime[word]/(1500000000*self.counter[word])
+			self.ranking[word] += round(self.aggregateTime[word]/(1500000000*self.counter[word]), 2)
 
 		
 
@@ -146,12 +147,29 @@ class Predictor:
 		#parseComments(reddit)
 		self.parsePostTitles(reddit)
 
+	def printRankings(self):
+		""" writes out the ranked words to a file named Rankings
+		
+		"""
+		file = open("Rankings.txt","w") 
+		#for key in self.ranking:
+			#print "1"
+		#pickle.dump(self.ranking, file)
+		file.write( 'dict = ' + repr(self.ranking) + '\n' )
+			#file.write('\n'.join(self.ranking[key]))
+			#file.write(key)
+
+
+		file.close()
+
+
 
 def main():
 
 	bot = Predictor('cryptocurrency')
 	bot.runBot(Predictor.reddit)
-	print bot.ranking
+	bot.printRankings()
+	#print bot.ranking
 
 if __name__ == '__main__':
 	main()
