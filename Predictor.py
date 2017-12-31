@@ -3,8 +3,13 @@ import string
 import re
 import math
 import pickle
+import sys
+import inspect
+import time
+from decimal import Decimal
 from collections import Counter
 from Authenticator import authenticate
+from datetime import datetime
 
 # USAGE: 
 #        1) download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html 
@@ -14,9 +19,10 @@ from Authenticator import authenticate
 class Predictor:
 
 	reddit = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
-
+	TIME_NOW         = int(time.time()) # epoch (UTC) time
+	TIME_24HOURS_AGO = int(time.time()) - 86400
 	# CONSTRUCTOR:
-	def __init__(self, subredditname):
+	def __init__(self, subredditname, dateInitial, dateEnd):
 		"""constructs a Predictor object
 		
 		Arguments:
@@ -27,6 +33,10 @@ class Predictor:
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.aggregateTime = Counter()
+		self.dateInitial = dateInitial
+		self.dateEnd     = dateEnd
+		self.amountOfPosts = 0
+		self.amountOfUpvotes = 0
 		#self.rankingScore = 0
 
 
@@ -107,29 +117,34 @@ class Predictor:
 		"""
 		
 		print "Parsing post titles..."
-		dateInitial = 1514507792 #1514453887 #1514078600 is December 25th, 2017 9:10pm PST. Convert time to UNIX time here: https://www.unixtimestamp.com/
-		dateEnd     = 1514535992 #1514507792   #1514265000 is December 26th, 2017 9:10pm PST
+		#dateInitial = 1514078600 #1514535992 #1514453887 #1514078600 is December 25th, 2017 9:10pm PST. Convert time to UNIX time here: https://www.unixtimestamp.com/
+		#dateEnd     = 1514265000 #1514621677  #1514507792   #1514265000 is December 26th, 2017 9:10pm PST
 
-		for post in reddit.subreddit(self.subRedditName).submissions(dateInitial, dateEnd):
+		for post in reddit.subreddit(self.subRedditName).submissions(self.dateInitial, self.dateEnd):
 
 			strong = ''.join(post.title).lower().encode('ascii','ignore')
 			self.parsingHelper(strong, post.score, post.created_utc)
+			self.amountOfPosts +=1
+			self.amountOfUpvotes += post.score
 			#print post.score
 			#print comment.downs
 
 		print "Successfully parsed post titles!"
 
 	def rankingAlgorithm(self, word):
-		""" ranks all words that appear in the counters depending on karma and how early the post was submitted on Reddit
+		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
 
 			
 		Arguments:
-			aggregateTime {Integer} -- the aggregate time of the submission of all the word's occurences
+			word {String} -- the word being ranked
 		"""
+		#postToUpvoteRatio = self.amountOfPosts/self.amountOfUpvotes
 		if self.karmaCounter[word] > 0:
-			self.ranking[word] += round((math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(1500000000*self.counter[word])), 2)
+			self.ranking[word] += (math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(410227200*self.counter[word]))
 		else:
-			self.ranking[word] += round(self.aggregateTime[word]/(1500000000*self.counter[word]), 2)
+			self.ranking[word] += ((self.aggregateTime[word]/(410227200*self.counter[word])))
+
+		#float(str(round(answer, 2)))
 
 		
 
@@ -155,21 +170,36 @@ class Predictor:
 		#for key in self.ranking:
 			#print "1"
 		#pickle.dump(self.ranking, file)
-		file.write( 'dict = ' + repr(self.ranking) + '\n' )
-			#file.write('\n'.join(self.ranking[key]))
+		#self.write_vars_to_file(self.ranking)
+		file.write(repr(self.ranking) + '\n' )
+		# source = inspect.getsourcelines(inspect.getmodule(inspect.stack()[0][0]))[0]
+		# print [x for x in source if x.startswith("mydict = ")]
+		
+		#file.write(self.ranking)
 			#file.write(key)
 
 
 		file.close()
 
+	# def write_vars_to_file(self, _f, **vars):
+	#     for (name, val) in vars.items():
+	#         _f.write("%s = %s\n" % (name, repr(val)))
+
+
+
 
 
 def main():
 
-	bot = Predictor('cryptocurrency')
+	bot = Predictor('aww', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.reddit)
-	bot.printRankings()
+	#print Predictor.TIME_NOW
+	print bot.amountOfPosts
+	print bot.amountOfUpvotes
+	#print bot.karmaCounter
+	#bot.printRankings()
 	#print bot.ranking
 
 if __name__ == '__main__':
 	main()
+
