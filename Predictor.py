@@ -18,9 +18,11 @@ from datetime import datetime
 
 class Predictor:
 
-	reddit = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
+	REDDIT = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
+	AVG_UPVOTE_TO_POST_RATIO = 30
+	ARB_DATE = 1104537600
 	# CONSTRUCTOR:
 	def __init__(self, subredditname, dateInitial, dateEnd):
 		"""constructs a Predictor object
@@ -57,12 +59,12 @@ class Predictor:
 				self.counter[word]       += 1
 				self.karmaCounter[word]  += karma
 				self.aggregateTime[word] += time
-				self.rankingAlgorithm(word)
+				self.rankingAlgorithm(word, karma, time)
 			else:
 				self.counter[word]       = 1
 				self.karmaCounter[word]  = karma
 				self.aggregateTime[word] = time
-				self.rankingAlgorithm(word)
+				self.rankingAlgorithm(word, karma, time)
 
 
 	def authenticate():
@@ -131,18 +133,23 @@ class Predictor:
 
 		print "Successfully parsed post titles!"
 
-	def rankingAlgorithm(self, word):
+	def rankingAlgorithm(self, word, karma, time):
 		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
+		
+		This algorithm is an improved version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
+		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
+
 
 			
 		Arguments:
 			word {String} -- the word being ranked
 		"""
 		#postToUpvoteRatio = self.amountOfPosts/self.amountOfUpvotes
-		if self.karmaCounter[word] > 0:
-			self.ranking[word] += (math.log10(self.karmaCounter[word]) + self.aggregateTime[word]/(410227200*self.counter[word]))
+		halfwayBetweenInitialEnd = (self.dateEnd - self.dateInitial)/2
+		if karma > 0:
+			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd)) + math.log(karma, Predictor.AVG_UPVOTE_TO_POST_RATIO)
 		else:
-			self.ranking[word] += ((self.aggregateTime[word]/(410227200*self.counter[word])))
+			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd))
 
 		#float(str(round(answer, 2)))
 
@@ -191,13 +198,13 @@ class Predictor:
 
 def main():
 
-	bot = Predictor('aww', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-	bot.runBot(Predictor.reddit)
+	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+	bot.runBot(Predictor.REDDIT)
 	#print Predictor.TIME_NOW
-	print bot.amountOfPosts
-	print bot.amountOfUpvotes
+	#print bot.amountOfPosts
+	#print bot.amountOfUpvotes
 	#print bot.karmaCounter
-	#bot.printRankings()
+	bot.printRankings()
 	#print bot.ranking
 
 if __name__ == '__main__':
