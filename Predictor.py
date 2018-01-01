@@ -2,11 +2,9 @@ import praw
 import string
 import re
 import math
-import pickle
 import sys
 import inspect
 import time
-from decimal import Decimal
 from collections import Counter
 from Authenticator import authenticate
 from datetime import datetime
@@ -21,9 +19,8 @@ class Predictor:
 	REDDIT = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
-	AVG_UPVOTE_TO_POST_RATIO = 30
-	ARB_DATE = 1104537600
-	# CONSTRUCTOR:
+	
+
 	def __init__(self, subredditname, dateInitial, dateEnd):
 		"""constructs a Predictor object
 		
@@ -34,13 +31,9 @@ class Predictor:
 		self.counter       = Counter()
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
-		self.aggregateTime = Counter()
+		self.ranking2      = Counter()
 		self.dateInitial = dateInitial
 		self.dateEnd     = dateEnd
-		self.amountOfPosts = 0
-		self.amountOfUpvotes = 0
-		#self.rankingScore = 0
-
 
 
     # FUNCTIONS:
@@ -58,12 +51,10 @@ class Predictor:
 			if word in self.counter:
 				self.counter[word]       += 1
 				self.karmaCounter[word]  += karma
-				self.aggregateTime[word] += time
 				self.rankingAlgorithm(word, karma, time)
 			else:
-				self.counter[word]       = 1
-				self.karmaCounter[word]  = karma
-				self.aggregateTime[word] = time
+				self.counter[word]        = 1
+				self.karmaCounter[word]   = karma
 				self.rankingAlgorithm(word, karma, time)
 
 
@@ -126,8 +117,8 @@ class Predictor:
 
 			strong = ''.join(post.title).lower().encode('ascii','ignore')
 			self.parsingHelper(strong, post.score, post.created_utc)
-			self.amountOfPosts +=1
-			self.amountOfUpvotes += post.score
+			
+			
 			#print post.score
 			#print comment.downs
 
@@ -136,25 +127,56 @@ class Predictor:
 	def rankingAlgorithm(self, word, karma, time):
 		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
 		
-		This algorithm is an improved version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
+		This algorithm is a modified version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
 		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
 
+		The modification in my algorithm stems from the fact that Reddit's algorithm ranks posts. My program ranks the words
+		in posts, so there's an extra layer of difficulty; the same word can appear in multiple posts. Therefore, my algorithm
+		ranks words depending on 3 factors: karma garnered, the number of occurences, and the time posted.
 
-			
+		First, this algorithm takes the halfway point between the difference between initial and end dates
+		to later assign a value to the word's posted time. 
+		Example: initalDate = now, endDate = 24 hours ago. Halfway between would be 12 hours ago.
+		We find the halfway point because that is when an average post would be submitted. 
+
+		A word that appears in a post submitted 24 hours ago gains 0 points.
+		A word that appears in a post submitted 12 hours ago gains 1 point. 
+		A word that appears in a post submitted 0  hours ago gains 2 points.
+
+		The second part of the algorithm deals with karma; the more karma the word's post garners, the higher thr word's score.
+		I'm assuming Reddit's algorithm uses (log10 of karma) because the average post garners close to 10 upvotes. 
+		On /r/cryptocurrency, the average post garners 30 upvotes, BUT the median is much lower. I kept it at log10 of karma
+		to place more importance on karma. 
+
+		Example of algorithm:
+		The word 'bitcoin' appeared in a post submitted 12 hours ago with 1000 upvotes.
+		The word 'bitcoin' gains (2-1)+log10(1000) = 1 + 3 = 4 points
+
+		The word 'ethereum' appeared in a post submitted 0 hours ago with 0 upvotes.
+		The word 'ethereum' gains (2-0) = 2 = 2 points
+
+		The word 'dogecoin' appeared in a post submitted 24 hours ago with 0 upvotes.
+		The word 'dogecoin' gains (2-2) = 0 = 0 points
+
+
 		Arguments:
-			word {String} -- the word being ranked
+			word  {String}  -- the word being ranked
+			karma {Integer} -- the word's post's karma
+			time  {Integer} -- the word's post's time submitted
 		"""
-		#postToUpvoteRatio = self.amountOfPosts/self.amountOfUpvotes
 		halfwayBetweenInitialEnd = (self.dateEnd - self.dateInitial)/2
 		if karma > 0:
-			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd)) + math.log(karma, Predictor.AVG_UPVOTE_TO_POST_RATIO)
+			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd)) + math.log(karma, 10)
 		else:
 			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd))
 
-		#float(str(round(answer, 2)))
 
-		
+	def rankingAlgorithm2(self):
+		""" this is a simpler algorithm that ranks words depending on their upvote:occurence ratio
 
+		"""
+		for key in self.counter:
+			self.ranking2[key] = self.karmaCounter[key]/self.counter[key]
 
 
 	def runBot(self, reddit):
@@ -168,44 +190,28 @@ class Predictor:
 		"""
 		#parseComments(reddit)
 		self.parsePostTitles(reddit)
+		self.rankingAlgorithm2()
+		self.printRankings()
 
 	def printRankings(self):
 		""" writes out the ranked words to a file named Rankings
 		
 		"""
-		file = open("Rankings.txt","w") 
-		#for key in self.ranking:
-			#print "1"
-		#pickle.dump(self.ranking, file)
-		#self.write_vars_to_file(self.ranking)
-		file.write(repr(self.ranking) + '\n' )
-		# source = inspect.getsourcelines(inspect.getmodule(inspect.stack()[0][0]))[0]
-		# print [x for x in source if x.startswith("mydict = ")]
-		
-		#file.write(self.ranking)
-			#file.write(key)
+		file  = open("Rankings1.txt","w")
+		file2 = open("Rankings2.txt","w")
 
-
-		file.close()
-
-	# def write_vars_to_file(self, _f, **vars):
-	#     for (name, val) in vars.items():
-	#         _f.write("%s = %s\n" % (name, repr(val)))
+		file .write(repr(self.ranking) + '\n' )
+		file2.write(repr(self.ranking2) + '\n' )
 
 
 
-
+		file .close()
+		file2.close()
 
 def main():
 
 	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.REDDIT)
-	#print Predictor.TIME_NOW
-	#print bot.amountOfPosts
-	#print bot.amountOfUpvotes
-	#print bot.karmaCounter
-	bot.printRankings()
-	#print bot.ranking
 
 if __name__ == '__main__':
 	main()
