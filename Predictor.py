@@ -22,19 +22,21 @@ class Predictor:
 	TIME_24HOURS_AGO = int(time.time()) - 86400
 
 
-	def __init__(self, subredditname, dateInitial, dateEnd):
+	def __init__(self, subredditname, dateStart, dateEnd):
 		"""constructs a Predictor object
 		
 		Arguments:
-			subredditname {string} -- the subreddit being parsed
+			subredditname {String}  -- the subreddit being parsed
+			dateStart     {Integer} -- the start date of parsing
+			dateEnd       {Integer} -- the end date of parsing
 		"""
 		self.subRedditName = subredditname
 		self.counter       = Counter()
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.ranking2      = Counter()
-		self.dateInitial = dateInitial
-		self.dateEnd     = dateEnd
+		self.dateStart     = dateStart
+		self.dateEnd       = dateEnd
 
 
     # FUNCTIONS:
@@ -46,6 +48,7 @@ class Predictor:
 		Arguments:
 			aos   {ArrayOfStrings} -- contains all the words to be added to counters
 			karma {Integer}        -- the karma score
+			time  {Integer}        -- the time posted
 		"""
 		for word in aos:
 			self.counter[word]       += 1
@@ -75,7 +78,7 @@ class Predictor:
 		"""
 		
 		print "Parsing comments..."
-		x = 1000
+		x = 10000
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
 			# transforms all letters of the comment body to lowercase and transforms the comment from unicode to ascii for easier readability
@@ -96,7 +99,7 @@ class Predictor:
 
 
 	def parsePostTitles(self, reddit):
-		""" Parses all post titles from dateInitial to dateEnd in the given subreddit
+		""" Parses all post titles from dateStart to dateEnd in the given subreddit
 
 		Reddit -> void
 		
@@ -105,10 +108,8 @@ class Predictor:
 		"""
 		
 		print "Parsing post titles..."
-		#dateInitial = 1514078600 #1514535992 #1514453887 #1514078600 is December 25th, 2017 9:10pm PST. Convert time to UNIX time here: https://www.unixtimestamp.com/
-		#dateEnd     = 1514265000 #1514621677  #1514507792   #1514265000 is December 26th, 2017 9:10pm PST
 
-		for post in reddit.subreddit(self.subRedditName).submissions(self.dateInitial, self.dateEnd):
+		for post in reddit.subreddit(self.subRedditName).submissions(self.dateStart, self.dateEnd):
 
 			strong = ''.join(post.title).lower().encode('ascii','ignore')
 			self.parsingHelper(strong, post.score, post.created_utc)
@@ -121,6 +122,8 @@ class Predictor:
 
 	def rankingAlgorithm(self, word, karma, time):
 		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
+
+		String Integer Integer -> void
 		
 		This algorithm is a modified version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
 		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
@@ -159,15 +162,17 @@ class Predictor:
 			karma {Integer} -- the word's post's karma
 			time  {Integer} -- the word's post's time submitted
 		"""
-		halfwayBetweenInitialEnd = (self.dateEnd - self.dateInitial)/2
+		halfwayBetweenInitialEnd = (self.dateEnd - self.dateStart)/2
 		if karma > 0:
-			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd)) + math.log(karma, 10)
+			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetweenInitialEnd)) + math.log(karma, 10)
 		else:
-			self.ranking[word] += (2 - ((time - self.dateInitial)/halfwayBetweenInitialEnd))
+			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetweenInitialEnd))
 
 
 	def rankingAlgorithm2(self):
 		""" this is a simpler algorithm that ranks words depending on their upvote:occurence ratio
+
+		void -> void
 
 		"""
 		for key in self.counter:
@@ -176,6 +181,7 @@ class Predictor:
 
 	def runBot(self, reddit):
 		""" Parses comments and titles
+
 		Reddit -> void
 
 		Parses the comments and/or titles in the given subreddit, and adds the occurence of certain strings found to counter.
@@ -185,20 +191,21 @@ class Predictor:
 		"""
 		#parseComments(reddit)
 		self.parsePostTitles(reddit)
+		self.parseComments(reddit)
 		self.rankingAlgorithm2()
 		self.printRankings()
 
 	def printRankings(self):
 		""" writes out the ranked words to a file named Rankings
+
+		void -> void
 		
 		"""
-		file  = open("Rankings1.txt","w")
+		file  = open("Rankings.txt","w")
 		file2 = open("Rankings2.txt","w")
 
 		file .write(repr(self.ranking) + '\n' )
 		file2.write(repr(self.ranking2) + '\n' )
-
-
 
 		file .close()
 		file2.close()
