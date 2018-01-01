@@ -13,10 +13,11 @@ from datetime import datetime
 #        1) download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html 
 #        2) in terminal, cd to folder which contains project files
 #        3) type python Predictor.py
+#        4) look at results in Rankings.txt and Rankings2.txt
 
 class Predictor:
 
-	REDDIT = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
+	REDDIT = authenticate() # authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
 
