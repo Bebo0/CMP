@@ -19,7 +19,7 @@ class Predictor:
 	REDDIT = authenticate() #authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
-	
+
 
 	def __init__(self, subredditname, dateInitial, dateEnd):
 		"""constructs a Predictor object
@@ -46,16 +46,10 @@ class Predictor:
 			aos   {ArrayOfStrings} -- contains all the words to be added to counters
 			karma {Integer}        -- the karma score
 		"""
-
 		for word in aos:
-			if word in self.counter:
-				self.counter[word]       += 1
-				self.karmaCounter[word]  += karma
-				self.rankingAlgorithm(word, karma, time)
-			else:
-				self.counter[word]        = 1
-				self.karmaCounter[word]   = karma
-				self.rankingAlgorithm(word, karma, time)
+			self.counter[word]       += 1
+			self.karmaCounter[word]  += karma
+			self.rankingAlgorithm(word, karma, time)
 
 
 	def authenticate():
