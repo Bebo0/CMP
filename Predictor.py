@@ -5,9 +5,11 @@ import math
 import sys
 import inspect
 import time
+import this
 from collections import Counter
 from Authenticator import authenticate
 from datetime import datetime
+
 
 # USAGE: 
 #        1) download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html 
@@ -20,6 +22,7 @@ class Predictor:
 	REDDIT = authenticate() # authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
+	TIME_7_DAYS_AGO  = int(time.time()) - 86400*7
 
 
 	def __init__(self, subredditname, dateStart, dateEnd):
@@ -51,8 +54,8 @@ class Predictor:
 			time  {Integer}        -- the time posted
 		"""
 		for word in aos:
-			self.counter[word]       += 1
-			self.karmaCounter[word]  += karma
+			self.counter[word]      += 1
+			self.karmaCounter[word] += karma
 			self.rankingAlgorithm(word, karma, time)
 
 
@@ -191,7 +194,7 @@ class Predictor:
 		"""
 		#parseComments(reddit)
 		self.parsePostTitles(reddit)
-		self.parseComments(reddit)
+		#self.parseComments(reddit)
 		self.rankingAlgorithm2()
 		self.printRankings()
 
