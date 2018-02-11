@@ -46,8 +46,6 @@ class Predictor:
 	def addOccurenceAndKarmaToCounters(self, aos, karma, time):
 		""" Adds the occurence and karma of all strings in given array to counters
 
-		ArrayOfStrings Integer -> void
-
 		Arguments:
 			aos   {ArrayOfStrings} -- contains all the words to be added to counters
 			karma {Integer}        -- the karma score
@@ -62,7 +60,6 @@ class Predictor:
 	def authenticate():
 		""" Logs us into Reddit and returns an object which allows us to interact with Reddit's API
 
-		void -> Reddit
 		"""
 		print "Authenticating"
 		reddit = praw.Reddit('wordcounterbot',
@@ -73,8 +70,6 @@ class Predictor:
 
 	def parseComments(self, reddit):
 		""" Parses the first x number of comments that appear in a subreddit
-
-		Reddit -> void
 		
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
@@ -103,8 +98,6 @@ class Predictor:
 
 	def parsePostTitles(self, reddit):
 		""" Parses all post titles from dateStart to dateEnd in the given subreddit
-
-		Reddit -> void
 		
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
@@ -125,9 +118,7 @@ class Predictor:
 
 	def rankingAlgorithm(self, word, karma, time):
 		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
-
-		String Integer Integer -> void
-		
+	
 		This algorithm is a modified version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
 		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
 
@@ -173,9 +164,7 @@ class Predictor:
 
 
 	def rankingAlgorithm2(self):
-		""" this is a simpler algorithm that ranks words depending on their upvote:occurence ratio
-
-		void -> void
+		""" this is a seperate, simpler algorithm that ranks words depending on their upvote:occurence ratio
 
 		"""
 		for key in self.counter:
@@ -185,14 +174,12 @@ class Predictor:
 	def runBot(self, reddit):
 		""" Parses comments and titles
 
-		Reddit -> void
-
 		Parses the comments and/or titles in the given subreddit, and adds the occurence of certain strings found to counter.
 			
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
-		#parseComments(reddit)
+
 		self.parsePostTitles(reddit)
 		#self.parseComments(reddit)
 		self.rankingAlgorithm2()
@@ -201,7 +188,6 @@ class Predictor:
 	def printRankings(self):
 		""" writes out the ranked words to a file named Rankings
 
-		void -> void
 		
 		"""
 		file  = open("Rankings.txt","w")
