@@ -55,7 +55,8 @@ class Predictor:
 			time  {Integer}        -- the time posted
 		"""
 		for word in aos:
-			if self.filter( word):
+			#print(type(word))
+			if self.filter(word):
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
 				self.rankingAlgorithm(word, karma, time)
@@ -81,9 +82,11 @@ class Predictor:
 		"""
 
 		if word in self.coinNames:
+			#print("true")
 			return True
 
 		else:
+			#print("false")
 			return False
 
 
@@ -92,16 +95,21 @@ class Predictor:
 		
 		"""
 		with open('Coins.txt','r') as f:
-		    for line in f:
-		    	c = 0
+			for line in f:
+				c = 0
 
-		        for word in line.split():
-		        	if (c == 0):
-		        		name = word
-		        	else:
-		        		self.nameSymbols[name] += word
-		        		
-		    		print(word) 
+		 		for word in line.split():
+		 			word = word.strip('\'"') 
+					#print(word) 
+					self.coinNames.append(word)
+
+		        	# print (self.coinNames)
+		        	# if (c == 0):
+		        	# 	name = word
+		        	# else:
+		        	# 	self.nameSymbols[name] += word
+						
+					#print(word) 
 		
 			
 		
@@ -222,13 +230,13 @@ class Predictor:
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
-
-		self.parsePostTitles(reddit)
-		#self.parseComments(reddit)
-		self.rankingAlgorithm2()
-		self.printRankings()
 		CoinMarketCap.getCoins()
 		self.getCoins()
+		self.parsePostTitles(reddit)
+		self.parseComments(reddit)
+		self.rankingAlgorithm2()
+		self.printRankings()
+
 
 	def printRankings(self):
 		""" writes out the ranked words to a file named Rankings
