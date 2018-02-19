@@ -13,12 +13,23 @@ def getCoins():
 	r = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=2000')
 	for coin in r.json():
 		strong = ''.join(coin["name"]).lower().encode('ascii','ignore')
+		strong.replace(' ', '')
 		strong1 = ''.join(coin["symbol"]).lower().encode('ascii','ignore')
 
-		file .write(repr(strong) + ' ')
+		file .write(repr(strong))
 		file .write(repr(strong1) + '\n' )
 
 	file .close()
+
+def noSpaces(self, word):
+	"""gets rid of spaces in a word
+	
+	
+	
+	Arguments:
+		word {String} -- [word to be filtered]
+	"""
+	pass
 
 
 def main():
@@ -27,6 +38,8 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
+
 
 
 
