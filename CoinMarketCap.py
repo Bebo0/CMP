@@ -15,7 +15,7 @@ def getCoins():
 		strong = ''.join(coin["name"]).lower().encode('ascii','ignore')
 		strong1 = ''.join(coin["symbol"]).lower().encode('ascii','ignore')
 
-		file .write(repr(strong) )
+		file .write(repr(strong) + ' ')
 		file .write(repr(strong1) + '\n' )
 
 	file .close()

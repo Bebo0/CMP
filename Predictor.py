@@ -5,7 +5,8 @@ import math
 import sys
 import inspect
 import time
-import this
+# import this
+import CoinMarketCap
 from collections import Counter
 from Authenticator import authenticate
 from datetime import datetime
@@ -38,8 +39,10 @@ class Predictor:
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.ranking2      = Counter()
+		self.nameSymbols   = Counter()
 		self.dateStart     = dateStart
 		self.dateEnd       = dateEnd
+		self.coinNames     = []
 
 
     # FUNCTIONS:
@@ -52,9 +55,11 @@ class Predictor:
 			time  {Integer}        -- the time posted
 		"""
 		for word in aos:
-			self.counter[word]      += 1
-			self.karmaCounter[word] += karma
-			self.rankingAlgorithm(word, karma, time)
+			if self.filter( word):
+				self.counter[word]      += 1
+				self.karmaCounter[word] += karma
+				self.rankingAlgorithm(word, karma, time)
+			
 
 
 	def authenticate():
@@ -68,6 +73,40 @@ class Predictor:
 		return reddit
 
 
+	def filter(self, word):
+		""" checks if the given word is a coin name or symbol
+		
+		Arguments:
+			word {String} -- the word to be checked
+		"""
+
+		if word in self.coinNames:
+			return True
+
+		else:
+			return False
+
+
+	def getCoins(self):
+		""" gets all coins' names and symbols from Coins.txt
+		
+		"""
+		with open('Coins.txt','r') as f:
+		    for line in f:
+		    	c = 0
+
+		        for word in line.split():
+		        	if (c == 0):
+		        		name = word
+		        	else:
+		        		self.nameSymbols[name] += word
+		        		
+		    		print(word) 
+		
+			
+		
+
+
 	def parseComments(self, reddit):
 		""" Parses the first x number of comments that appear in a subreddit
 		
@@ -79,8 +118,11 @@ class Predictor:
 		x = 10000
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
-			# transforms all letters of the comment body to lowercase and transforms the comment from unicode to ascii for easier readability
+			# transforms all letters of the comment body to lowercase and transforms the comment from unicode 
+			# to ascii for easier readability
 			strong = ''.join(comment.body).lower().encode('ascii','ignore')
+
+
 
 			self.parsingHelper(strong, comment.score, comment.created_utc)
 		print "Successfully parsed comments!"
@@ -93,6 +135,7 @@ class Predictor:
 		allowedSymbols = string.letters + string.digits + ' ' + '\'' + '-'
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
+		 
 		self.addOccurenceAndKarmaToCounters(aos, karma, time)
 
 
@@ -184,6 +227,8 @@ class Predictor:
 		#self.parseComments(reddit)
 		self.rankingAlgorithm2()
 		self.printRankings()
+		CoinMarketCap.getCoins()
+		self.getCoins()
 
 	def printRankings(self):
 		""" writes out the ranked words to a file named Rankings
