@@ -1,6 +1,7 @@
 import json 
 import requests 
 import string
+import re
 from collections import Counter
 
 def getCoins():
@@ -13,23 +14,14 @@ def getCoins():
 	r = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=2000')
 	for coin in r.json():
 		strong = ''.join(coin["name"]).lower().encode('ascii','ignore')
-		strong.replace(' ', '')
+		# removes spaces in a coin's name
+		strong = re.sub('[\s+]', '', strong)
 		strong1 = ''.join(coin["symbol"]).lower().encode('ascii','ignore')
 
 		file .write(repr(strong))
 		file .write(repr(strong1) + '\n' )
 
 	file .close()
-
-def noSpaces(self, word):
-	"""gets rid of spaces in a word
-	
-	
-	
-	Arguments:
-		word {String} -- [word to be filtered]
-	"""
-	pass
 
 
 def main():
