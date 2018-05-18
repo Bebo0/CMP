@@ -11,7 +11,7 @@ def getCoins():
 
 	file  = open("Coins.txt","w")
 	
-	r = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=2000')
+	r = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=600')
 	for coin in r.json():
 		strong = str(coin)
 		strong = coin["name"].lower().encode('ascii','ignore')

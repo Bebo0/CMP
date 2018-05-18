@@ -7,6 +7,7 @@ import inspect
 import time
 # import this
 import CoinMarketCap
+import matplotlib.pyplot as plt
 from collections import Counter
 from Authenticator import authenticate
 from datetime import datetime
@@ -35,7 +36,7 @@ class Predictor:
 			dateEnd       {Integer} -- the end date of parsing
 		"""
 		self.subRedditName = subredditname
-		self.counter       = Counter()
+		self.counter       = Counter() # word counter
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.ranking2      = Counter()
@@ -123,7 +124,8 @@ class Predictor:
 		"""
 		
 		print "Parsing comments..."
-		x = 10000
+		x = 1000
+		temp = 0
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
 			# transforms all letters of the comment body to lowercase and transforms the comment from unicode 
@@ -133,6 +135,8 @@ class Predictor:
 
 
 			self.parsingHelper(strong, comment.score, comment.created_utc)
+			# temp = temp + 1
+			# print(temp)
 		print "Successfully parsed comments!"
 
 
@@ -175,7 +179,7 @@ class Predictor:
 
 		The modification in my algorithm stems from the fact that Reddit's algorithm ranks posts. My program ranks the words
 		in posts, so there's an extra layer of difficulty; the same word can appear in multiple posts. Therefore, my algorithm
-		ranks words depending on 3 factors: karma garnered, the number of occurences, and the time posted.
+		ranks words depending on 3 aspects of their posts: karma garnered, the number of occurences, and the time posted.
 
 		First, this algorithm takes the halfway point between the difference between initial and end dates
 		to later assign a value to the word's posted time. 
@@ -225,17 +229,23 @@ class Predictor:
 	def runBot(self, reddit):
 		""" Parses comments and titles
 
-		Parses the comments and/or titles in the given subreddit, and adds the occurence of certain strings found to counter.
+		Parses the comments and/or titles in the given subreddit, and adds the occurence of
+		certain strings found to counter.
 			
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
 		CoinMarketCap.getCoins()
 		self.getCoins()
-		self.parsePostTitles(reddit)
+		# self.parsePostTitles(reddit)
 		self.parseComments(reddit)
 		self.rankingAlgorithm2()
 		self.printRankings()
+		# plt.bar(range(len(self.ranking)), list(self.ranking.values()), align='center')
+		# plt.xticks(range(len(self.ranking)), list(self.ranking.keys()))
+		plt.bar(range(len(self.ranking)), self.ranking.values(), align='center')  # python 2.x
+		plt.xticks(range(len(self.ranking)), self.ranking.keys())  # in python 2.x
+		plt.show()
 
 
 	def printRankings(self):
@@ -257,8 +267,18 @@ def main():
 	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.REDDIT)
 
+
+	# D = {u'Label1':26, u'Label2': 17, u'Label3':30}
+
+	
+	# # for python 2.x:
+
+
+
+
+
 if __name__ == '__main__':
 	main()
-
+	
 # https://plot.ly/python/create-online-dashboard/
 
