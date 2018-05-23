@@ -24,7 +24,7 @@ class Predictor:
 	REDDIT = authenticate() # authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
 	TIME_24HOURS_AGO = int(time.time()) - 86400
-	TIME_7_DAYS_AGO  = int(time.time()) - 86400*7
+	TIME_7DAYS_AGO   = int(time.time()) - 86400*7
 
 
 	def __init__(self, subredditname, dateStart, dateEnd):
@@ -47,8 +47,8 @@ class Predictor:
 
 
     # FUNCTIONS:
-	def addOccurenceAndKarmaToCounters(self, aos, karma, time):
-		""" Adds the occurence and karma of all strings in given array to counters
+	def addScores(self, aos, karma, time):
+		""" Adds the occurence and karma scores of all strings in given array to counters
 
 		Arguments:
 			aos   {ArrayOfStrings} -- contains all the words to be added to counters
@@ -56,7 +56,6 @@ class Predictor:
 			time  {Integer}        -- the time posted
 		"""
 		for word in aos:
-			#print(type(word))
 			if self.filter(word):
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
@@ -83,11 +82,9 @@ class Predictor:
 		"""
 
 		if word in self.coinNames:
-			#print("true")
 			return True
 
 		else:
-			#print("false")
 			return False
 
 
@@ -101,22 +98,14 @@ class Predictor:
 
 		 		for word in line.split():
 		 			word = word.strip('\'"') 
-					#print(word) 
+	
 					self.coinNames.append(word)
-
-		        	# print (self.coinNames)
-		        	# if (c == 0):
-		        	# 	name = word
-		        	# else:
-		        	# 	self.nameSymbols[name] += word
-						
-					#print(word) 
 		
 			
 		
 
 
-	def parseComments(self, reddit):
+	def parseComments(self, reddit, x):
 		""" Parses the first x number of comments that appear in a subreddit
 		
 		Arguments:
@@ -124,19 +113,15 @@ class Predictor:
 		"""
 		
 		print "Parsing comments..."
-		x = 1000
-		temp = 0
+		
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
 			# transforms all letters of the comment body to lowercase and transforms the comment from unicode 
 			# to ascii for easier readability
 			strong = ''.join(comment.body).lower().encode('ascii','ignore')
 
-
-
 			self.parsingHelper(strong, comment.score, comment.created_utc)
-			# temp = temp + 1
-			# print(temp)
+
 		print "Successfully parsed comments!"
 
 
@@ -148,7 +133,7 @@ class Predictor:
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
 		 
-		self.addOccurenceAndKarmaToCounters(aos, karma, time)
+		self.addScores(aos, karma, time)
 
 
 	def parsePostTitles(self, reddit):
@@ -190,7 +175,7 @@ class Predictor:
 		A word that appears in a post submitted 12 hours ago gains 1 point. 
 		A word that appears in a post submitted 0  hours ago gains 2 points.
 
-		The second part of the algorithm deals with karma; the more karma the word's post garners, the higher thr word's score.
+		The second part of the algorithm deals with karma; the more karma the word's post garners, the higher the word's score.
 		I'm assuming Reddit's algorithm uses (log10 of karma) because the average post garners close to 10 upvotes. 
 		On /r/cryptocurrency, the average post garners 30 upvotes, BUT the median is much lower. I kept it at log10 of karma
 		to place more importance on karma. 
@@ -211,11 +196,11 @@ class Predictor:
 			karma {Integer} -- the word's post's karma
 			time  {Integer} -- the word's post's time submitted
 		"""
-		halfwayBetweenInitialEnd = (self.dateEnd - self.dateStart)/2
+		halfwayBetween = (self.dateEnd - self.dateStart)/2
 		if karma > 0:
-			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetweenInitialEnd)) + math.log(karma, 10)
+			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetween)) + math.log(karma, 10)
 		else:
-			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetweenInitialEnd))
+			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetween))
 
 
 	def rankingAlgorithm2(self):
@@ -237,14 +222,12 @@ class Predictor:
 		"""
 		CoinMarketCap.getCoins()
 		self.getCoins()
-		# self.parsePostTitles(reddit)
-		self.parseComments(reddit)
+		self.parseComments(reddit, 1000)
 		self.rankingAlgorithm2()
 		self.printRankings()
-		# plt.bar(range(len(self.ranking)), list(self.ranking.values()), align='center')
-		# plt.xticks(range(len(self.ranking)), list(self.ranking.keys()))
-		plt.bar(range(len(self.ranking)), self.ranking.values(), align='center')  # python 2.x
-		plt.xticks(range(len(self.ranking)), self.ranking.keys())  # in python 2.x
+
+		plt.bar(range(len(self.ranking)), self.ranking.values(), align='center')  
+		plt.xticks(range(len(self.ranking)), self.ranking.keys())  
 		plt.show()
 
 
@@ -266,14 +249,6 @@ def main():
 
 	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.REDDIT)
-
-
-	# D = {u'Label1':26, u'Label2': 17, u'Label3':30}
-
-	
-	# # for python 2.x:
-
-
 
 
 
