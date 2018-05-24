@@ -5,8 +5,9 @@ import math
 import sys
 import inspect
 import time
-# import this
+import operator
 import CoinMarketCap
+import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 from Authenticator import authenticate
@@ -36,15 +37,15 @@ class Predictor:
 			dateEnd       {Integer} -- the end date of parsing
 		"""
 		self.subRedditName = subredditname
+		# self.coinCounters  = Counter()
 		self.counter       = Counter() # word counter
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.ranking2      = Counter()
 		self.nameSymbols   = Counter()
-		self.dateStart     = dateStart
+		self.dateStart     = dateStart # in epoch (UTC) time
 		self.dateEnd       = dateEnd
 		self.coinNames     = []
-
 
     # FUNCTIONS:
 	def addScores(self, aos, karma, time):
@@ -226,8 +227,14 @@ class Predictor:
 		self.rankingAlgorithm2()
 		self.printRankings()
 
-		plt.bar(range(len(self.ranking)), self.ranking.values(), align='center')  
-		plt.xticks(range(len(self.ranking)), self.ranking.keys())  
+		sortedRankings = sorted(self.ranking.items(), key=lambda x: x[1], reverse=True)
+		# sortedRankings.reverse()
+
+		x_axisCoinNames  = zip(*sortedRankings)[0]
+		y_axisCoinScores = zip(*sortedRankings)[1]
+
+		plt.bar(x_axisCoinNames, y_axisCoinScores, align='center')  
+		plt.xticks(x_axisCoinNames, y_axisCoinScores)
 		plt.show()
 
 
