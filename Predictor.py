@@ -75,6 +75,7 @@ class Predictor:
 		return reddit
 
 
+
 	def filter(self, word):
 		""" checks if the given word is a coin name or symbol
 		
@@ -157,6 +158,32 @@ class Predictor:
 
 		print "Successfully parsed post titles!"
 
+
+	def plotRankings(self, n):
+		""" Plots the top n coins 
+		
+		Arguments:
+			n {int} -- [number of coin rankings to be plotted]
+		"""
+		sortedRankings = sorted(self.ranking.items(), key=lambda x: x[1], reverse=True)
+		tempList = []
+
+		if (n>len(self.ranking)):
+			n = len(self.ranking)
+		for x in xrange(1,n):
+			tempList.append(sortedRankings[x])
+	
+		x_axisCoinNames  = zip(*tempList)[0]
+		y_axisCoinScores = zip(*tempList)[1]
+
+		mpl_fig = plt.figure()
+		ax = mpl_fig.add_subplot(111)
+		ax.bar(range(len(tempList)), y_axisCoinScores, 0.5, align='center', color='skyblue') 
+		# ax.grid() 
+		ax.set_title('Rankings')
+		plt.xticks(range(len(tempList)), x_axisCoinNames, size='small')
+		plt.show()
+
 	def rankingAlgorithm(self, word, karma, time):
 		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
 	
@@ -223,19 +250,12 @@ class Predictor:
 		"""
 		CoinMarketCap.getCoins()
 		self.getCoins()
-		self.parseComments(reddit, 1000)
+		self.parseComments(reddit, 2000)
 		self.rankingAlgorithm2()
 		self.printRankings()
+		self.plotRankings(20)
 
-		sortedRankings = sorted(self.ranking.items(), key=lambda x: x[1], reverse=True)
-		# sortedRankings.reverse()
 
-		x_axisCoinNames  = zip(*sortedRankings)[0]
-		y_axisCoinScores = zip(*sortedRankings)[1]
-
-		plt.bar(x_axisCoinNames, y_axisCoinScores, align='center')  
-		plt.xticks(x_axisCoinNames, y_axisCoinScores)
-		plt.show()
 
 
 	def printRankings(self):
