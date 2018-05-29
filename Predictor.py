@@ -7,6 +7,9 @@ import inspect
 import time
 import operator
 import CoinMarketCap
+import pandas as pd
+import requests
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
@@ -24,7 +27,7 @@ class Predictor:
 
 	REDDIT = authenticate() # authenticate called here so that only 1 authentication occurs even if multiple objects are instantiated
 	TIME_NOW         = int(time.time()) # epoch (UTC) time
-	TIME_24HOURS_AGO = int(time.time()) - 86400
+	TIME_24HOURS_AGO = int(time.time()) - 86400/2
 	TIME_7DAYS_AGO   = int(time.time()) - 86400*7
 
 
@@ -144,19 +147,60 @@ class Predictor:
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
-		
 		print "Parsing post titles..."
+		post_ids = []
+		#Subreddit to query
+		sub=self.subRedditName
+		# Unix timestamp of date to crawl from.
+		# 2018/04/01
+		after = "1522618956"
 
-		for post in reddit.subreddit(self.subRedditName).submissions(self.dateStart, self.dateEnd):
+		data = self.getPushshiftData(self.TIME_24HOURS_AGO, self.subRedditName)
+		print len(data)
 
-			strong = ''.join(post.title).lower().encode('ascii','ignore')
-			self.parsingHelper(strong, post.score, post.created_utc)
+		# Will run until all posts have been gathered 
+		# from the 'after' date up until todays date
+		while len(data) > 0:
+		    for submission in data:
+		    	print submission
+		        post_ids.append(submission["id"])
+		    # Calls getPushshiftData() with the created date of the last submission
+		data = self.getPushshiftData(sub=sub, after=data[-1]['created_utc'])
+
+
+		obj = {}
+		obj['sub'] = sub
+		obj['id'] = post_ids
+		# Save to json for later use
+		with open("submissions.json", "w") as jsonFile:
+		    json.dump(obj, jsonFile)
+
+		print "Successfully parsed post titles!"
+	
+
+	def getPushshiftData(self, after, sub):
+		print "getPushshiftData called"
+		url = 'https://api.pushshift.io/reddit/search/submission?&size=1000&after='+str(self.TIME_24HOURS_AGO)+'&subreddit='+str(self.subRedditName)
+		r = requests.get(url)
+		data = json.loads(r.text)
+		print "getPushshiftData returned"
+		return data['data']
+
+
+	#list of post ID's
+
+		# print "Parsing post titles..."
+
+		# for post in reddit.get_subreddit('self.subRedditName').get_top(limit=10) # subreddit(self.subRedditName).submissions(self.dateStart, self.dateEnd):
+
+		# 	strong = ''.join(post.title).lower().encode('ascii','ignore')
+		# 	self.parsingHelper(strong, post.score, post.created_utc)
 			
 			
 			#print post.score
 			#print comment.downs
 
-		print "Successfully parsed post titles!"
+		
 
 
 	def plotRankings(self, n):
@@ -251,6 +295,7 @@ class Predictor:
 		CoinMarketCap.getCoins()
 		self.getCoins()
 		self.parseComments(reddit, 2000)
+		# self.parsePostTitles(reddit)
 		self.rankingAlgorithm2()
 		self.printRankings()
 		self.plotRankings(20)
