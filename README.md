@@ -15,7 +15,3 @@ A program that predicts the crypto market using Reddit.
         3) An algorithm then ranks cryptocurrencies by how frequently they are mentioned in posts and/or comments, how many upvotes the posts or comments garner, and how soon they were posted on Reddit.
         4) A bar grap is plotted of the results when the program ends. Also, raw results are outputted to rankings.txt and rankings2.txt.
 
-
-# Update May 28th
-PRAW no longer supports parsing post titles. Therefore, the program as is can only parse comments. This will be fixed soon.
-
