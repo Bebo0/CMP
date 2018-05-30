@@ -31,23 +31,24 @@ class Predictor:
 	TIME_7DAYS_AGO   = int(time.time()) - 86400*7
 
 
-	def __init__(self, subredditname, dateStart, dateEnd):
+	def __init__(self, subredditsToParse, startDate, endDate):
 		"""constructs a Predictor object
 		
 		Arguments:
 			subredditname {String}  -- the subreddit being parsed
-			dateStart     {Integer} -- the start date of parsing
-			dateEnd       {Integer} -- the end date of parsing
+			startDate     {Integer} -- the start date of parsing
+			endDate       {Integer} -- the end date of parsing
 		"""
-		self.subRedditName = subredditname
+		self.subredditsToParse = subredditsToParse
+		self.subRedditName = subredditsToParse[0]
 		# self.coinCounters  = Counter()
 		self.counter       = Counter() # word counter
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
 		self.ranking2      = Counter()
 		self.nameSymbols   = Counter()
-		self.dateStart     = dateStart # in epoch (UTC) time
-		self.dateEnd       = dateEnd
+		self.startDate     = startDate # in epoch (UTC) time
+		self.endDate       = endDate
 		self.coinNames     = []
 
     # FUNCTIONS:
@@ -142,14 +143,14 @@ class Predictor:
 
 
 	def parsePostTitles(self, reddit):
-		""" Parses all post titles from dateStart to dateEnd in the given subreddit
+		""" Parses all post titles from startDate to endDate in the given subreddit
 		
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
 		print "Parsing post titles..."
 
-		data = self.getPushshiftData(self.dateStart, self.dateEnd, self.subRedditName)
+		data = self.getPushshiftData(self.startDate, self.endDate, self.subRedditName)
 
 		for submission in data:
 			strong = ''.join(submission["title"]).lower().encode('ascii','ignore')
@@ -158,8 +159,13 @@ class Predictor:
 		print "Successfully parsed post titles!"
 
 	def createjson(self):
+		""" Outputs raw data to rawdata.json
+		
+		"""
+
 
 		json_results = []
+		# creates a sorted version of the counter dictionary in the form of a list of tuples.
 		sortedDictionary = sorted(self.counter.items(), key=lambda x: x[1], reverse=True)
 		
 		for t in sortedDictionary:
@@ -250,11 +256,11 @@ class Predictor:
 			karma {Integer} -- the word's post's karma
 			time  {Integer} -- the word's post's time submitted
 		"""
-		halfwayBetween = (self.dateEnd - self.dateStart)/2
+		halfwayBetween = (self.endDate - self.startDate)/2
 		if karma > 0:
-			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetween)) + math.log(karma, 10)
+			self.ranking[word] += (2 - ((time - self.startDate)/halfwayBetween)) + math.log(karma, 10)
 		else:
-			self.ranking[word] += (2 - ((time - self.dateStart)/halfwayBetween))
+			self.ranking[word] += (2 - ((time - self.startDate)/halfwayBetween))
 
 
 	def rankingAlgorithm2(self):
@@ -276,21 +282,19 @@ class Predictor:
 		"""
 		CoinMarketCap.getCoins()
 		self.getCoins()
-		self.parseComments(reddit, 2000)
-		self.parsePostTitles(reddit)
+		for subreddit in self.subredditsToParse:
+			self.subRedditName = subreddit
+			self.parseComments(reddit, 2000)
+			self.parsePostTitles(reddit)
+
+		
 		self.rankingAlgorithm2()
-		self.printRankings()
 		self.plotRankings(20)
 		
 
 def main():
-
-	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-	bot = Predictor('cryptomarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-	bot = Predictor('bitcoinmarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-	bot = Predictor('cryptotechnology', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-	bot = Predictor('altcoin', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-
+	subredditsToParse = ['cryptocurrency', 'cryptomarkets', 'bitcoinmarkets', 'cryptotechnology', 'altcoin']
+	bot = Predictor(subredditsToParse, Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.REDDIT)
 	bot.createjson()
 
