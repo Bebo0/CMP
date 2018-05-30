@@ -148,12 +148,10 @@ class Predictor:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
 		print "Parsing post titles..."
-		post_ids = []
 
 		data = self.getPushshiftData(self.dateStart, self.dateEnd, self.subRedditName)
 
 		for submission in data:
-			post_ids.append(submission["id"])
 			strong = ''.join(submission["title"]).lower().encode('ascii','ignore')
 			self.parsingHelper(strong, submission["score"], submission["created_utc"])
 
@@ -169,7 +167,8 @@ class Predictor:
 			obj = {}
 			obj['karma'] = self.karmaCounter[t[0]]
 			obj['mentions'] = t[1]
-			obj['score'] = self.ranking[t[0]]
+			obj['score1'] = self.ranking[t[0]]
+			obj['score2'] = self.ranking2[t[0]]
 			obj['coinname'] = t[0]
 			
 			json_results.append(obj)
@@ -284,27 +283,9 @@ class Predictor:
 		self.plotRankings(20)
 		
 
-
-
-
-	def printRankings(self):
-		""" writes out the ranked words to a file named Rankings
-
-		
-		"""
-		file  = open("Rankings.txt","w")
-		file2 = open("Rankings2.txt","w")
-
-		file .write(repr(self.ranking) + '\n' )
-		file2.write(repr(self.ranking2) + '\n' )
-
-		file .close()
-		file2.close()
-
 def main():
 
 	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
-
 	bot = Predictor('cryptomarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot = Predictor('bitcoinmarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot = Predictor('cryptotechnology', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
@@ -314,9 +295,6 @@ def main():
 	bot.createjson()
 
 
-
 if __name__ == '__main__':
 	main()
-	
-# https://plot.ly/python/create-online-dashboard/
 
