@@ -17,11 +17,15 @@ from Authenticator import authenticate
 from datetime import datetime
 
 
-# USAGE: 
-#        1) download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html 
-#        2) in terminal, cd to folder which contains project files
-#        3) type python Predictor.py
-#        4) look at results in Rankings.txt and Rankings2.txt
+
+"""
+Usage:
+1) Download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html.
+2) Specifiy subRedditsToParse, endDate and startDate in the initializer variable in the main function in Predictor.py.
+3) In terminal, cd to folder which contains project files.
+4) Type python Predictor.py.
+5) Look at results in plotted graph. Data also available in the rawdata.json file.
+"""
 
 class Predictor:
 
@@ -41,7 +45,6 @@ class Predictor:
 		"""
 		self.subredditsToParse = subredditsToParse
 		self.subRedditName = subredditsToParse[0]
-		# self.coinCounters  = Counter()
 		self.counter       = Counter() # word counter
 		self.karmaCounter  = Counter()
 		self.ranking       = Counter() 
@@ -77,6 +80,29 @@ class Predictor:
 				user_agent = "Bebo's Word Counter")
 		print "Successfully authenticated as {}".format(reddit.user.me())
 		return reddit
+
+	def createjson(self):
+		""" Outputs raw data to rawdata.json
+
+		"""
+
+		json_results = []
+		# creates a sorted version of the counter dictionary in the form of a list of tuples.
+		sortedDictionary = sorted(self.counter.items(), key=lambda x: x[1], reverse=True)
+		
+		for t in sortedDictionary:
+
+			obj = {}
+			obj['karma'] = self.karmaCounter[t[0]]
+			obj['mentions'] = t[1]
+			obj['score1'] = self.ranking[t[0]]
+			obj['score2'] = self.ranking2[t[0]]
+			obj['coinname'] = t[0]
+			
+			json_results.append(obj)
+			
+		with open("RawData.json", "w") as jsonFile:
+			json.dump(json_results, jsonFile)
 
 
 
@@ -118,7 +144,7 @@ class Predictor:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
 		
-		print "Parsing comments..."
+		print "Parsing comments in /r/"+str(self.subRedditName)+"..."
 		
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
@@ -148,7 +174,7 @@ class Predictor:
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
-		print "Parsing post titles..."
+		print "Parsing post titles in /r/"+str(self.subRedditName)+"..."
 
 		data = self.getPushshiftData(self.startDate, self.endDate, self.subRedditName)
 
@@ -157,29 +183,6 @@ class Predictor:
 			self.parsingHelper(strong, submission["score"], submission["created_utc"])
 
 		print "Successfully parsed post titles!"
-
-	def createjson(self):
-		""" Outputs raw data to rawdata.json
-
-		"""
-
-		json_results = []
-		# creates a sorted version of the counter dictionary in the form of a list of tuples.
-		sortedDictionary = sorted(self.counter.items(), key=lambda x: x[1], reverse=True)
-		
-		for t in sortedDictionary:
-
-			obj = {}
-			obj['karma'] = self.karmaCounter[t[0]]
-			obj['mentions'] = t[1]
-			obj['score1'] = self.ranking[t[0]]
-			obj['score2'] = self.ranking2[t[0]]
-			obj['coinname'] = t[0]
-			
-			json_results.append(obj)
-			
-		with open("RawData.json", "w") as jsonFile:
-			json.dump(json_results, jsonFile)
 	
 
 	def getPushshiftData(self, after, before, sub):
