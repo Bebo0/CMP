@@ -160,9 +160,8 @@ class Predictor:
 
 	def createjson(self):
 		""" Outputs raw data to rawdata.json
-		
-		"""
 
+		"""
 
 		json_results = []
 		# creates a sorted version of the counter dictionary in the form of a list of tuples.
