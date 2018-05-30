@@ -150,30 +150,38 @@ class Predictor:
 		print "Parsing post titles..."
 		post_ids = []
 
-		data = self.getPushshiftData(self.dateStart, self.subRedditName)
+		data = self.getPushshiftData(self.dateStart, self.dateEnd, self.subRedditName)
 
 		for submission in data:
 			post_ids.append(submission["id"])
 			strong = ''.join(submission["title"]).lower().encode('ascii','ignore')
 			self.parsingHelper(strong, submission["score"], submission["created_utc"])
 
-			
-		obj = {}
-		obj['sub'] = self.subRedditName
-		obj['id'] = post_ids
-		# Save to json for later use
-		with open("submissions.json", "w") as jsonFile:
-		    json.dump(obj, jsonFile)
-
 		print "Successfully parsed post titles!"
+
+	def createjson(self):
+
+		json_results = []
+		sortedDictionary = sorted(self.counter.items(), key=lambda x: x[1], reverse=True)
+		
+		for t in sortedDictionary:
+
+			obj = {}
+			obj['karma'] = self.karmaCounter[t[0]]
+			obj['mentions'] = t[1]
+			obj['score'] = self.ranking[t[0]]
+			obj['coinname'] = t[0]
+			
+			json_results.append(obj)
+			
+		with open("RawData.json", "w") as jsonFile:
+			json.dump(json_results, jsonFile)
 	
 
-	def getPushshiftData(self, after, sub):
-		# print "getPushshiftData called"
-		url = 'https://api.pushshift.io/reddit/search/submission?&size=1000&after='+str(self.dateStart)+'&before='+str(self.dateEnd)+'&subreddit='+str(self.subRedditName)
+	def getPushshiftData(self, after, before, sub):
+		url = 'https://api.pushshift.io/reddit/search/submission?&size=1000&after='+str(after)+'&before='+str(before)+'&subreddit='+str(self.subRedditName)
 		r = requests.get(url)
 		data = json.loads(r.text)
-		# print "getPushshiftData returned"
 		return data['data']
 
 
@@ -274,6 +282,7 @@ class Predictor:
 		self.rankingAlgorithm2()
 		self.printRankings()
 		self.plotRankings(20)
+		
 
 
 
@@ -295,7 +304,14 @@ class Predictor:
 def main():
 
 	bot = Predictor('cryptocurrency', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+
+	bot = Predictor('cryptomarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+	bot = Predictor('bitcoinmarkets', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+	bot = Predictor('cryptotechnology', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+	bot = Predictor('altcoin', Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
+
 	bot.runBot(Predictor.REDDIT)
+	bot.createjson()
 
 
 
