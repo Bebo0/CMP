@@ -224,14 +224,13 @@ class Predictor:
 		This algorithm is a modified version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
 		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
 
-		The modification in my algorithm stems from the fact that Reddit's algorithm ranks posts. My program ranks the words
-		in posts, so there's an extra layer of difficulty; the same word can appear in multiple posts. Therefore, my algorithm
-		ranks words depending on 3 aspects of their posts: karma garnered, the number of occurences, and the time posted.
+		The modification in my algorithm stems from the fact that Reddit's algorithm ranks posts; my program ranks the words
+		in posts. My algorithm ranks words depending on 3 aspects of their posts: karma garnered, the number of occurences, and the time posted.
 
 		First, this algorithm takes the halfway point between the difference between initial and end dates
 		to later assign a value to the word's posted time. 
 		Example: initalDate = now, endDate = 24 hours ago. Halfway between would be 12 hours ago.
-		We find the halfway point because that is when an average post would be submitted. 
+		We find the halfway point because that is when an "average" post would be submitted. 
 
 		A word that appears in a post submitted 24 hours ago gains 0 points.
 		A word that appears in a post submitted 12 hours ago gains 1 point. 
