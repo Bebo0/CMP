@@ -17,14 +17,20 @@ from datetime import datetime
 
 
 
-"""
+""" 
 Usage:
-1) Download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html.
-2) Specifiy subRedditsToParse, endDate and startDate in the initializer variable in the main function in Predictor.py.
-3) In terminal, cd to folder which contains project files.
-4) Type python Predictor.py.
-5) Look at results in plotted graph. Data also available in the rawdata.json file.
+    1) Download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html.
+	2) Download matplotlib. Follow instruction here: https://matplotlib.org/users/installing.html
+    3) (optional) Specifiy subRedditsToParse, endDate and startDate in the initializer variable in main inside predictor.py.
+	4) (optional) Specifiy which ranking to plot (self.ranking, self.ranking2, self.sentimentRanking) in the self.plotRankings() call in main inside predictor.py
+    5) In terminal, cd to folder which contains project files.
+    6) Type python predictor.py.
+    7) Look at results in plotted graph. Full data also available in the rawdata.json file.
+
+The sentiment analyzer used in this program is a modified version of the VADER (Valence Aware Dictionary and sEntiment Reasoner) sentiment anaylzer.
+
 """
+
 
 class Predictor:
 
@@ -102,6 +108,7 @@ class Predictor:
 			obj['score1'] = self.ranking[t[0]]
 			obj['score2'] = self.ranking2[t[0]]
 			obj['coinname'] = t[0]
+			obj['sentiment'] = self.sentimentScore[t[0]]
 			
 			json_results.append(obj)
 			
@@ -153,14 +160,8 @@ class Predictor:
 		
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
-			# transforms all letters of the comment body to lowercas
+			# transforms all letters of the comment body to lowercase
 			strong = ''.join(comment.body).lower()
-
-			# Sentiment Analyzer
-			
-			
-			# sentimentHelper();
-		    
 
 			self.parsingHelper(strong, comment.score, comment.created_utc)
 			#print(str(vs))
@@ -177,6 +178,8 @@ class Predictor:
 		allowedSymbols = string.ascii_letters + string.digits + ' ' + '\'' + '-'
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
+
+		# Sentiment analyzer score for whole post/comment
 		vs = self.analyzer.polarity_scores(strong)
 		self.addScores(aos, karma, time, vs.get("compound", 0) )
 
@@ -212,7 +215,7 @@ class Predictor:
 		
 		Arguments:
 			n {int}  -- [number of coin rankings to be plotted]
-			r {dict} -- [dictionary counter to be plotted]
+			r {dict} -- [dictionary rankings to be plotted]
 		"""
 		sortedRankings = sorted(list(r.items()), key=lambda x: x[1], reverse=True)
 		tempList = []
@@ -234,7 +237,7 @@ class Predictor:
 		plt.show()
 
 	def rankingAlgorithm(self, word, karma, time):
-		""" ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
+		""" custom algorithm that ranks a word that appears in the counters depending on karma and how early the word's post was submitted on Reddit
 	
 		This algorithm is a modified version of Reddit's algorithm that ensures posts on the front page stay "fresh" but also "interesting".
 		More info here: http://scienceblogs.com/builtonfacts/2013/01/16/the-mathematics-of-reddit-rankings-or-how-upvotes-are-time-travel/
@@ -278,9 +281,9 @@ class Predictor:
 		else:
 			self.ranking[word] += (2 - ((time - self.startDate)/halfwayBetween))
 
-
+	# upvote:mentions algo
 	def rankingAlgorithm2(self):
-		""" this is a seperate, simpler algorithm that ranks words depending on their upvote:occurence ratio
+		""" upvote:mentions algorithm
 
 		"""
 		for key in self.counter:
