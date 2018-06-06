@@ -7,10 +7,8 @@ import inspect
 import time
 import operator
 import CoinMarketCap
-import pandas as pd
 import requests
 import json
-import numpy as np
 import matplotlib.pyplot as plt
 from vaderSentiment.vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from collections import Counter
@@ -45,18 +43,21 @@ class Predictor:
 			endDate       {Integer} -- the end date of parsing
 		"""
 		self.subredditsToParse = subredditsToParse
-		self.subRedditName = subredditsToParse[0]
-		self.counter       = Counter() # word counter
-		self.karmaCounter  = Counter()
-		self.ranking       = Counter() 
-		self.ranking2      = Counter()
-		self.nameSymbols   = Counter()
-		self.startDate     = startDate # in epoch (UTC) time
-		self.endDate       = endDate
-		self.coinNames     = []
+		self.subRedditName     = subredditsToParse[0] # program initialized with the first subreddit in subredditToParse
+		self.counter           = Counter() # word counter
+		self.karmaCounter      = Counter()
+		self.ranking           = Counter() 
+		self.ranking2          = Counter()
+		self.sentimentScore    = Counter()
+		self.nameSymbols       = Counter()
+		self.startDate         = startDate # in epoch (UTC) time
+		self.endDate           = endDate
+		self.coinNames         = []
+		self.analyzer          = SentimentIntensityAnalyzer()
+
 
     # FUNCTIONS:
-	def addScores(self, aos, karma, time):
+	def addScores(self, aos, karma, time, sentiment):
 		""" Adds the occurence and karma scores of all strings in given array to counters
 
 		Arguments:
@@ -69,6 +70,8 @@ class Predictor:
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
 				self.rankingAlgorithm(word, karma, time)
+				self.sentimentScore[word] += sentiment*karma
+
 			
 
 
@@ -150,19 +153,21 @@ class Predictor:
 		
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
-			# transforms all letters of the comment body to lowercase and transforms the comment from unicode 
-			# to ascii for easier readability
-			strong = ''.join(comment.body).lower() # .encode('ascii','ignore')
+			# transforms all letters of the comment body to lowercas
+			strong = ''.join(comment.body).lower()
 
-			analyzer = SentimentIntensityAnalyzer()
-			vs = analyzer.polarity_scores(strong)
+			# Sentiment Analyzer
+			
+			
+			# sentimentHelper();
 		    
 
 			self.parsingHelper(strong, comment.score, comment.created_utc)
-			print(("{:-<65} {}".format(strong, str(vs))))
+			#print(str(vs))
+			# print(("{:-<65} {}".format(strong, str(vs))))
 
 
-		# print "Successfully parsed comments!"
+		print ("Successfully parsed comments!")
 
 
 	def parsingHelper(self, strong, karma, time):
@@ -172,8 +177,8 @@ class Predictor:
 		allowedSymbols = string.ascii_letters + string.digits + ' ' + '\'' + '-'
 		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
 		aos = aos.split()
-		 
-		self.addScores(aos, karma, time)
+		vs = self.analyzer.polarity_scores(strong)
+		self.addScores(aos, karma, time, vs.get("compound", 0) )
 
 
 	def parsePostTitles(self, reddit):
@@ -187,7 +192,8 @@ class Predictor:
 		data = self.getPushshiftData(self.startDate, self.endDate, self.subRedditName)
 
 		for submission in data:
-			strong = ''.join(submission["title"]).lower().encode('ascii','ignore')
+			strong = ''.join(submission["title"]).lower()
+			vs = self.analyzer.polarity_scores(strong)
 			self.parsingHelper(strong, submission["score"], submission["created_utc"])
 
 		print("Successfully parsed post titles!")
@@ -201,22 +207,23 @@ class Predictor:
 
 
 
-	def plotRankings(self, n):
+	def plotRankings(self, n, r):
 		""" Plots the top n coins 
 		
 		Arguments:
-			n {int} -- [number of coin rankings to be plotted]
+			n {int}  -- [number of coin rankings to be plotted]
+			r {dict} -- [dictionary counter to be plotted]
 		"""
-		sortedRankings = sorted(list(self.ranking.items()), key=lambda x: x[1], reverse=True)
+		sortedRankings = sorted(list(r.items()), key=lambda x: x[1], reverse=True)
 		tempList = []
 
-		if (n>len(self.ranking)):
-			n = len(self.ranking)
+		if (n>len(r)):
+			n = len(r)
 		for x in range(1,n):
 			tempList.append(sortedRankings[x])
 	
-		x_axisCoinNames  = zip(*tempList)[0]
-		y_axisCoinScores = zip(*tempList)[1]
+		x_axisCoinNames  = list(zip(*tempList))[0]
+		y_axisCoinScores = list(zip(*tempList))[1]
 
 		mpl_fig = plt.figure()
 		ax = mpl_fig.add_subplot(111)
@@ -293,12 +300,12 @@ class Predictor:
 		self.getCoins()
 		for subreddit in self.subredditsToParse:
 			self.subRedditName = subreddit
-			self.parseComments(reddit, 50)
-			# self.parsePostTitles(reddit)
+			self.parseComments(reddit, 1000)
+			self.parsePostTitles(reddit)
 
 		
-		# self.rankingAlgorithm2()
-		# self.plotRankings(20)
+		self.rankingAlgorithm2()
+		self.plotRankings(20, self.sentimentScore)
 		
 
 def main():
