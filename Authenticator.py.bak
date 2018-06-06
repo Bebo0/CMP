@@ -5,8 +5,8 @@ def authenticate():
 
 	void -> Reddit
 	"""
-	print("Authenticating")
+	print "Authenticating"
 	reddit = praw.Reddit('wordcounterbot',
 			user_agent = "Bebo's Word Counter")
-	print("Successfully authenticated as {}".format(reddit.user.me()))
+	print "Successfully authenticated as {}".format(reddit.user.me())
 	return reddit

@@ -386,7 +386,7 @@ class SentimentIntensityAnalyzer(object):
         idioms_valences = []
         for idiom in SENTIMENT_LADEN_IDIOMS:
             if idiom in senti_text_lower:
-                print((idiom, senti_text_lower))
+                print(idiom, senti_text_lower)
                 valence = SENTIMENT_LADEN_IDIOMS[idiom]
                 idioms_valences.append(valence)
         if len(idioms_valences) > 0:
@@ -551,7 +551,7 @@ if __name__ == '__main__':
     print("  -- sentiment laden initialisms and acronyms (for example: 'lol') \n")
     for sentence in sentences:
         vs = analyzer.polarity_scores(sentence)
-        print(("{:-<65} {}".format(sentence, str(vs))))
+        print("{:-<65} {}".format(sentence, str(vs)))
     print("----------------------------------------------------")
     print(" - About the scoring: ")
     print("""  -- The 'compound' score is computed by summing the valence scores of each word in the lexicon, adjusted 
@@ -585,7 +585,7 @@ if __name__ == '__main__':
     print("  -- special uses of 'least' as negation versus comparison \n")
     for sentence in tricky_sentences:
         vs = analyzer.polarity_scores(sentence)
-        print(("{:-<69} {}".format(sentence, str(vs))))
+        print("{:-<69} {}".format(sentence, str(vs)))
     print("----------------------------------------------------")
 
     # input("\nPress Enter to continue the demo...\n")  # for DEMO purposes...
@@ -594,8 +594,8 @@ if __name__ == '__main__':
     print(
         " - VADER works best when analysis is done at the sentence level (but it can work on single words or entire novels).")
     paragraph = "It was one of the worst movies I've seen, despite good reviews. Unbelievably bad acting!! Poor direction. VERY poor production. The movie was bad. Very bad movie. VERY BAD movie!"
-    print(("  -- For example, given the following paragraph text from a hypothetical movie review:\n\t'{}'".format(
-        paragraph)))
+    print("  -- For example, given the following paragraph text from a hypothetical movie review:\n\t'{}'".format(
+        paragraph))
     print(
         "  -- You could use NLTK to break the paragraph into sentence tokens for VADER, then average the results for the paragraph like this: \n")
     # simple example to tokenize paragraph into sentences for VADER
@@ -605,9 +605,9 @@ if __name__ == '__main__':
     paragraphSentiments = 0.0
     for sentence in sentence_list:
         vs = analyzer.polarity_scores(sentence)
-        print(("{:-<69} {}".format(sentence, str(vs["compound"]))))
+        print("{:-<69} {}".format(sentence, str(vs["compound"])))
         paragraphSentiments += vs["compound"]
-    print(("AVERAGE SENTIMENT FOR PARAGRAPH: \t" + str(round(paragraphSentiments / len(sentence_list), 4))))
+    print("AVERAGE SENTIMENT FOR PARAGRAPH: \t" + str(round(paragraphSentiments / len(sentence_list), 4)))
     print("----------------------------------------------------")
 
     # input("\nPress Enter to continue the demo...\n")  # for DEMO purposes...
@@ -618,23 +618,23 @@ if __name__ == '__main__':
     conceptSentiments = 0.0
     for concept in conceptList:
         vs = analyzer.polarity_scores(concept)
-        print(("{:-<15} {}".format(concept, str(vs['compound']))))
+        print("{:-<15} {}".format(concept, str(vs['compound'])))
         conceptSentiments += vs["compound"]
-    print(("AVERAGE SENTIMENT OF TAGS/LABELS: \t" + str(round(conceptSentiments / len(conceptList), 4))))
+    print("AVERAGE SENTIMENT OF TAGS/LABELS: \t" + str(round(conceptSentiments / len(conceptList), 4)))
     print("\t")
     conceptList = ["riot", "fire", "fight", "blood", "mob", "war", "police", "tear gas"]
     conceptSentiments = 0.0
     for concept in conceptList:
         vs = analyzer.polarity_scores(concept)
-        print(("{:-<15} {}".format(concept, str(vs['compound']))))
+        print("{:-<15} {}".format(concept, str(vs['compound'])))
         conceptSentiments += vs["compound"]
-    print(("AVERAGE SENTIMENT OF TAGS/LABELS: \t" + str(round(conceptSentiments / len(conceptList), 4))))
+    print("AVERAGE SENTIMENT OF TAGS/LABELS: \t" + str(round(conceptSentiments / len(conceptList), 4)))
     print("----------------------------------------------------")
 
     # input("\nPress Enter to continue the demo...")  # for DEMO purposes...
 
-    do_translate = eval(input(
-        "\nWould you like to run VADER demo examples with NON-ENGLISH text? (Note: requires Internet access) \n Type 'y' or 'n', then press Enter: "))
+    do_translate = input(
+        "\nWould you like to run VADER demo examples with NON-ENGLISH text? (Note: requires Internet access) \n Type 'y' or 'n', then press Enter: ")
     if do_translate.lower().lstrip().__contains__("y"):
         print("\n----------------------------------------------------")
         print(" - Analyze sentiment of NON ENGLISH text...for example:")
@@ -674,8 +674,8 @@ if __name__ == '__main__':
                 translation = response_json["responseData"]["translatedText"]
                 translator_name = "MemoryNet Translation Service"
             vs = analyzer.polarity_scores(translation)
-            print(("- {: <8}: {: <69}\t {} ({})".format(languages[nonEnglish_sentences.index(sentence)], sentence,
-                                                       str(vs['compound']), translator_name)))
+            print("- {: <8}: {: <69}\t {} ({})".format(languages[nonEnglish_sentences.index(sentence)], sentence,
+                                                       str(vs['compound']), translator_name))
         print("----------------------------------------------------")
 
     print("\n\n Demo Done!")
