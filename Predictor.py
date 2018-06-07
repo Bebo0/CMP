@@ -44,12 +44,12 @@ class Predictor:
 		"""constructs a Predictor object
 		
 		Arguments:
-			subredditname {String}  -- the subreddit being parsed
-			startDate     {Integer} -- the start date of parsing
-			endDate       {Integer} -- the end date of parsing
+			subredditsToParse {ArrayOfStrings} -- the subreddits being parsed
+			startDate         {Integer}        -- the start date of parsing
+			endDate           {Integer}        -- the end date of parsing
 		"""
 		self.subredditsToParse = subredditsToParse
-		self.subRedditName     = subredditsToParse[0] # program initialized with the first subreddit in subredditToParse
+		self.subRedditName = ""
 		self.counter           = Counter() # word counter
 		self.karmaCounter      = Counter()
 		self.ranking           = Counter() 
@@ -76,7 +76,11 @@ class Predictor:
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
 				self.rankingAlgorithm(word, karma, time)
-				self.sentimentScore[word] += sentiment*karma
+				if karma <= 0:
+					self.sentimentScore[word] += sentiment
+				else:
+					self.sentimentScore[word] += sentiment*(1+(math.log(karma, 10)))
+				
 
 			
 
