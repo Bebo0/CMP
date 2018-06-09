@@ -48,18 +48,18 @@ class Predictor:
 			startDate         {Integer}        -- the start date of parsing
 			endDate           {Integer}        -- the end date of parsing
 		"""
-		self.subredditsToParse = subredditsToParse
-		self.subRedditName = ""
-		self.counter           = Counter() # word counter
-		self.karmaCounter      = Counter()
-		self.ranking           = Counter() 
-		self.ranking2          = Counter()
-		self.sentimentScore    = Counter()
-		self.nameSymbols       = Counter()
-		self.startDate         = startDate # in epoch (UTC) time
-		self.endDate           = endDate
-		self.coinNames         = []
-		self.analyzer          = SentimentIntensityAnalyzer()
+		self.subredditsToParse   = subredditsToParse
+		self.subRedditName       = ""
+		self.counter             = Counter() # word counter
+		self.karmaCounter        = Counter()
+		self.ranking             = Counter() 
+		self.ranking2            = Counter()
+		self.sentimentRanking    = Counter()
+		self.nameSymbols         = Counter()
+		self.startDate           = startDate # in epoch (UTC) time
+		self.endDate             = endDate
+		self.coinNames           = []
+		self.analyzer            = SentimentIntensityAnalyzer()
 
 
     # FUNCTIONS:
@@ -67,19 +67,21 @@ class Predictor:
 		""" Adds the occurence and karma scores of all strings in given array to counters
 
 		Arguments:
-			aos   {ArrayOfStrings} -- contains all the words to be added to counters
-			karma {Integer}        -- the karma score
-			time  {Integer}        -- the time posted
+			aos       {ArrayOfStrings} -- contains all the words (cryptocurrency names or symbols) to be added to counters
+			karma     {Integer}        -- the karma score of the post/comment containing  the coin's name or symbol
+			time      {Integer}        -- the time posted of the post/comment containing  the coin's name or symbol
+			sentiment {Integer}        -- the sentiment score of the post/comment containing  the coin's name or symbol
 		"""
 		for word in aos:
+			# filters words so that only cryptocurrency names or symbols will be added to counter
 			if self.filter(word):
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
 				self.rankingAlgorithm(word, karma, time)
 				if karma <= 0:
-					self.sentimentScore[word] += sentiment
+					self.sentimentRanking[word] += sentiment
 				else:
-					self.sentimentScore[word] += sentiment*(1+(math.log(karma, 10)))
+					self.sentimentRanking[word] += sentiment*(1+(math.log(karma, 10)))
 				
 
 			
@@ -112,7 +114,7 @@ class Predictor:
 			obj['score1'] = self.ranking[t[0]]
 			obj['score2'] = self.ranking2[t[0]]
 			obj['coinname'] = t[0]
-			obj['sentiment'] = self.sentimentScore[t[0]]
+			obj['sentiment'] = self.sentimentRanking[t[0]]
 			
 			json_results.append(obj)
 			
@@ -165,9 +167,9 @@ class Predictor:
 		for comment in reddit.subreddit(self.subRedditName).comments(limit=x):
 
 			# transforms all letters of the comment body to lowercase
-			strong = ''.join(comment.body).lower()
+			body = ''.join(comment.body).lower()
 
-			self.parsingHelper(strong, comment.score, comment.created_utc)
+			self.parsingHelper(body, comment.score, comment.created_utc)
 			#print(str(vs))
 			# print(("{:-<65} {}".format(strong, str(vs))))
 
@@ -175,16 +177,17 @@ class Predictor:
 		print ("Successfully parsed comments!")
 
 
-	def parsingHelper(self, strong, karma, time):
-		""" Splits strong into individual strings then adds them to the counter 
+	def parsingHelper(self, body, karma, time):
+		""" Splits body into individual strings then adds mention/karma/sentiment scores to the ranking counters 
 		
 		"""
 		allowedSymbols = string.ascii_letters + string.digits + ' ' + '\'' + '-'
-		aos = re.sub('[^%s]' % allowedSymbols,'',strong)
+		aos = re.sub('[^%s]' % allowedSymbols,'',body)
 		aos = aos.split()
 
 		# Sentiment analyzer score for whole post/comment
-		vs = self.analyzer.polarity_scores(strong)
+		vs = self.sentimentAlgorithm(body)
+		# we add the normalized, weighted composite score ("compound") of the whole post/comment to the scores
 		self.addScores(aos, karma, time, vs.get("compound", 0) )
 
 
@@ -285,13 +288,27 @@ class Predictor:
 		else:
 			self.ranking[word] += (2 - ((time - self.startDate)/halfwayBetween))
 
-	# upvote:mentions algo
-	def rankingAlgorithm2(self):
+
+	def ratioAlgorithm(self):
 		""" upvote:mentions algorithm
 
 		"""
 		for key in self.counter:
 			self.ranking2[key] = self.karmaCounter[key]/self.counter[key]
+
+	def sentimentAlgorithm(self, body):
+
+		""" returns sentiment score of body
+
+		
+		For a comprehensive explanation of how sentiment scores are calculated, go to 
+		Cryptocurrency-Market-Predictor\vaderSentiment\vaderSentiment\vaderSentiment.py,
+		starting at line 520. Source of algorithm: https://github.com/cjhutto/vaderSentiment
+
+		"""
+		return self.analyzer.polarity_scores(body)
+		
+
 
 
 	def runBot(self, reddit):
@@ -311,8 +328,8 @@ class Predictor:
 			self.parsePostTitles(reddit)
 
 		
-		self.rankingAlgorithm2()
-		self.plotRankings(20, self.sentimentScore)
+		self.ratioAlgorithm()
+		self.plotRankings(20, self.sentimentRanking)
 		
 
 def main():
