@@ -9,7 +9,6 @@ import operator
 import CoinMarketCap
 import requests
 import json
-import nltk
 import matplotlib.pyplot as plt
 from vaderSentiment.vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from collections import Counter
@@ -66,7 +65,7 @@ class Predictor:
 
     # FUNCTIONS:
 	def addScores(self, aos, karma, time, sentiment):
-		""" Adds the occurence and karma scores of all strings in given array to counters
+		""" Adds the mentions, karma, and sentiment scores of all strings in given array to counters
 
 		Arguments:
 			aos       {ArrayOfStrings} -- contains all the words (cryptocurrency names or symbols) to be added to counters
@@ -168,8 +167,6 @@ class Predictor:
 			body = ''.join(comment.body).lower()
 
 			self.parsingHelper(body, comment.score, comment.created_utc)
-			#print(str(vs))
-			# print(("{:-<65} {}".format(strong, str(vs))))
 
 
 		print ("Successfully parsed comments!")
@@ -311,14 +308,7 @@ class Predictor:
 
 
 	def runBot(self, reddit):
-		""" Parses comments and titles
 
-		Parses the comments and/or titles in the given subreddit, and adds the occurence of
-		certain strings found to counter.
-			
-		Arguments:
-			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
-		"""
 		self.getCoins()
 		for subreddit in self.subredditsToParse:
 			self.subRedditName = subreddit
