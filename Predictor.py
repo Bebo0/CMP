@@ -9,6 +9,7 @@ import operator
 import CoinMarketCap
 import requests
 import json
+import nltk
 import matplotlib.pyplot as plt
 from vaderSentiment.vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from collections import Counter
@@ -55,10 +56,11 @@ class Predictor:
 		self.ranking             = Counter() 
 		self.ranking2            = Counter()
 		self.sentimentRanking    = Counter()
-		self.nameSymbols         = Counter()
+		self.symbolName          = Counter()
 		self.startDate           = startDate # in epoch (UTC) time
 		self.endDate             = endDate
 		self.coinNames           = []
+		self.coinSymbols         = []
 		self.analyzer            = SentimentIntensityAnalyzer()
 
 
@@ -72,9 +74,12 @@ class Predictor:
 			time      {Integer}        -- the time posted of the post/comment containing  the coin's name or symbol
 			sentiment {Integer}        -- the sentiment score of the post/comment containing  the coin's name or symbol
 		"""
+		wsf = []
 		for word in aos:
 			# filters words so that only cryptocurrency names or symbols will be added to counter
-			if self.filter(word):
+			
+			if word in self.coinNames and (word not in wsf):
+				wsf.append(word)
 				self.counter[word]      += 1
 				self.karmaCounter[word] += karma
 				self.rankingAlgorithm(word, karma, time)
@@ -82,6 +87,16 @@ class Predictor:
 					self.sentimentRanking[word] += sentiment
 				else:
 					self.sentimentRanking[word] += sentiment*(1+(math.log(karma, 10)))
+
+			elif (word in self.coinSymbols) and (self.symbolName[word] not in wsf):
+				wsf.append(self.symbolName[word])
+				self.counter[self.symbolName[word]]      += 1
+				self.karmaCounter[self.symbolName[word]] += karma
+				self.rankingAlgorithm(self.symbolName[word], karma, time)
+				if karma <= 0:
+					self.sentimentRanking[self.symbolName[word]] += sentiment
+				else:
+					self.sentimentRanking[self.symbolName[word]] += sentiment*(1+(math.log(karma, 10)))
 				
 
 			
@@ -122,37 +137,20 @@ class Predictor:
 			json.dump(json_results, jsonFile)
 
 
-
-	def filter(self, word):
-		""" checks if the given word is a coin name or symbol
-		
-		Arguments:
-			word {String} -- the word to be checked
-		"""
-
-		if word in self.coinNames:
-			return True
-
-		else:
-			return False
-
-
 	def getCoins(self):
-		""" gets all coins' names and symbols from Coins.txt
+		""" gets all coins' names and symbols and initializes symbolName[]
 		
 		"""
-		with open('Coins.txt','r') as f:
-			for line in f:
-				c = 0
 
-				for word in line.split():
+		self.coinNames   = CoinMarketCap.getCoinNames()
+		self.coinSymbols = CoinMarketCap.getCoinSymbols()
 
-					word = word.strip('\'"') 
-	
-					self.coinNames.append(word)
-		
-			
-		
+		if len(self.coinNames) != len(self.coinSymbols):
+			raise Exception('Some coin has no symbol. Parse less coins')
+
+		for x in range(0,len(self.coinNames)):
+			self.symbolName[self.coinSymbols[x]] = self.coinNames[x]
+
 
 
 	def parseComments(self, reddit, x):
@@ -200,6 +198,7 @@ class Predictor:
 		print("Parsing post titles in /r/"+str(self.subRedditName)+"...")
 
 		data = self.getPushshiftData(self.startDate, self.endDate, self.subRedditName)
+
 
 		for submission in data:
 			strong = ''.join(submission["title"]).lower()
@@ -320,20 +319,19 @@ class Predictor:
 		Arguments:
 			reddit {Reddit} -- [the Reddit object that allows us to interact with Reddit's API]
 		"""
-		CoinMarketCap.getCoins()
 		self.getCoins()
 		for subreddit in self.subredditsToParse:
 			self.subRedditName = subreddit
 			self.parseComments(reddit, 1000)
 			self.parsePostTitles(reddit)
 
-		
 		self.ratioAlgorithm()
 		self.plotRankings(20, self.sentimentRanking)
+
 		
 
 def main():
-	subredditsToParse = ['cryptocurrency', 'cryptomarkets', 'bitcoinmarkets', 'cryptotechnology']# , 'altcoin']
+	subredditsToParse = ['cryptocurrency' , 'cryptomarkets', 'bitcoinmarkets', 'cryptotechnology']# , 'altcoin']
 	bot = Predictor(subredditsToParse, Predictor.TIME_24HOURS_AGO, Predictor.TIME_NOW)
 	bot.runBot(Predictor.REDDIT)
 	bot.createjson()
