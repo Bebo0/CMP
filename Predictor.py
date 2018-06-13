@@ -2,10 +2,7 @@ import praw
 import string
 import re
 import math
-import sys
-import inspect
 import time
-import operator
 import CoinMarketCap
 import requests
 import json
@@ -13,7 +10,6 @@ import matplotlib.pyplot as plt
 from vaderSentiment.vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from collections import Counter
 from Authenticator import authenticate
-from datetime import datetime
 
 
 
@@ -50,21 +46,24 @@ class Predictor:
 		"""
 		self.subredditsToParse   = subredditsToParse
 		self.subRedditName       = ""
-		self.counter             = Counter() # word counter
+		self.counter             = Counter() # word mentions counter
 		self.karmaCounter        = Counter()
-		self.ranking             = Counter() 
-		self.ranking2            = Counter()
-		self.sentimentRanking    = Counter()
-		self.symbolName          = Counter()
+		self.ranking             = Counter() # rankings for the custom algorithm
+		self.ranking2            = Counter() # rankings for the upvote:mention ratio algorithm
+		self.sentimentRanking    = Counter() # rankings for the sentiment algorithm
+		self.symbolToName        = Counter()
+		self.nameToSymbol        = Counter()
 		self.startDate           = startDate # in epoch (UTC) time
 		self.endDate             = endDate
 		self.coinNames           = []
 		self.coinSymbols         = []
 		self.analyzer            = SentimentIntensityAnalyzer()
+		self.plotSymbols         = True # plot symbols or full names
 
 
     # FUNCTIONS:
 	def addScores(self, aos, karma, time, sentiment):
+
 		""" Adds the mentions, karma, and sentiment scores of all strings in given array to counters
 
 		Arguments:
@@ -73,32 +72,58 @@ class Predictor:
 			time      {Integer}        -- the time posted of the post/comment containing  the coin's name or symbol
 			sentiment {Integer}        -- the sentiment score of the post/comment containing  the coin's name or symbol
 		"""
-		wsf = []
-		for word in aos:
-			# filters words so that only cryptocurrency names or symbols will be added to counter
-			
-			if word in self.coinNames and (word not in wsf):
-				wsf.append(word)
-				self.counter[word]      += 1
-				self.karmaCounter[word] += karma
-				self.rankingAlgorithm(word, karma, time)
-				if karma <= 0:
-					self.sentimentRanking[word] += sentiment
-				else:
-					self.sentimentRanking[word] += sentiment*(1+(math.log(karma, 10)))
 
-			elif (word in self.coinSymbols) and (self.symbolName[word] not in wsf):
-				wsf.append(self.symbolName[word])
-				self.counter[self.symbolName[word]]      += 1
-				self.karmaCounter[self.symbolName[word]] += karma
-				self.rankingAlgorithm(self.symbolName[word], karma, time)
-				if karma <= 0:
-					self.sentimentRanking[self.symbolName[word]] += sentiment
-				else:
-					self.sentimentRanking[self.symbolName[word]] += sentiment*(1+(math.log(karma, 10)))
-				
+            # filters words so that only cryptocurrency names or symbols will be added to counter
 
-			
+		if not self.plotSymbols:
+			wsf = []
+			for word in aos:
+
+				if word in self.coinNames and (word not in wsf):
+
+					wsf.append(word)
+					self.counter[word]      += 1
+					self.karmaCounter[word] += karma
+					self.rankingAlgorithm(word, karma, time)
+					if karma <= 0:
+						self.sentimentRanking[word] += sentiment
+					else:
+						self.sentimentRanking[word] += sentiment*(1+(math.log(karma, 10)))
+
+				elif word in self.coinSymbols and self.symbolToName[word] not in wsf:
+					wsf.append(self.symbolToName[word])
+					self.counter[self.symbolToName[word]]      += 1
+					self.karmaCounter[self.symbolToName[word]] += karma
+					self.rankingAlgorithm(self.symbolToName[word], karma, time)
+					if karma <= 0:
+						self.sentimentRanking[self.symbolToName[word]] += sentiment
+					else:
+						self.sentimentRanking[self.symbolToName[word]] += sentiment * (1 + (math.log(karma, 10)))
+
+		else:
+			wsf = []
+			for word in aos:
+
+				if word in self.coinNames and (self.nameToSymbol[word] not in wsf):
+
+					wsf.append(self.nameToSymbol[word])
+					self.counter[self.nameToSymbol[word]] += 1
+					self.karmaCounter[self.nameToSymbol[word]] += karma
+					self.rankingAlgorithm(self.nameToSymbol[word], karma, time)
+					if karma <= 0:
+						self.sentimentRanking[self.nameToSymbol[word]] += sentiment
+					else:
+						self.sentimentRanking[self.nameToSymbol[word]] += sentiment * (1 + (math.log(karma, 10)))
+
+				elif word in self.coinSymbols and word not in wsf:
+					wsf.append(word)
+					self.counter[word] += 1
+					self.karmaCounter[word] += karma
+					self.rankingAlgorithm(word, karma, time)
+					if karma <= 0:
+						self.sentimentRanking[word] += sentiment
+					else:
+						self.sentimentRanking[word] += sentiment * (1 + (math.log(karma, 10)))
 
 
 	def authenticate():
@@ -137,7 +162,7 @@ class Predictor:
 
 
 	def getCoins(self):
-		""" gets all coins' names and symbols and initializes symbolName[]
+		""" gets all coins' names and symbols and initializes coinNames, coinSymbols, and symbolName[]
 		
 		"""
 
@@ -148,7 +173,8 @@ class Predictor:
 			raise Exception('Some coin has no symbol. Parse less coins')
 
 		for x in range(0,len(self.coinNames)):
-			self.symbolName[self.coinSymbols[x]] = self.coinNames[x]
+			self.symbolToName[self.coinSymbols[x]] = self.coinNames[x]
+			self.nameToSymbol[self.coinNames[x]]   = self.coinSymbols[x]
 
 
 
@@ -186,7 +212,7 @@ class Predictor:
 		self.addScores(aos, karma, time, vs.get("compound", 0) )
 
 
-	def parsePostTitles(self, reddit):
+	def parsePostTitles(self):
 		""" Parses all post titles from startDate to endDate in the given subreddit
 		
 		Arguments:
@@ -194,18 +220,17 @@ class Predictor:
 		"""
 		print("Parsing post titles in /r/"+str(self.subRedditName)+"...")
 
-		data = self.getPushshiftData(self.startDate, self.endDate, self.subRedditName)
+		data = self.getPushshiftData(self.startDate, self.endDate)
 
 
 		for submission in data:
 			strong = ''.join(submission["title"]).lower()
-			vs = self.analyzer.polarity_scores(strong)
 			self.parsingHelper(strong, submission["score"], submission["created_utc"])
 
 		print("Successfully parsed post titles!")
 	
 
-	def getPushshiftData(self, after, before, sub):
+	def getPushshiftData(self, after, before):
 		url = 'https://api.pushshift.io/reddit/search/submission?&size=1000&after='+str(after)+'&before='+str(before)+'&subreddit='+str(self.subRedditName)
 		r = requests.get(url)
 		data = json.loads(r.text)
@@ -313,7 +338,7 @@ class Predictor:
 		for subreddit in self.subredditsToParse:
 			self.subRedditName = subreddit
 			self.parseComments(reddit, 1000)
-			self.parsePostTitles(reddit)
+			self.parsePostTitles()
 
 		self.ratioAlgorithm()
 		self.plotRankings(20, self.sentimentRanking)
