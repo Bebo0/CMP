@@ -1,7 +1,7 @@
 A program that predicts the crypto market using Reddit.
 
 # Example of results (June 15th 2018):
-![Imgur](https://i.imgur.com/CRFOKVe.png)
+![Imgur](https://i.imgur.com/YH9cOVg.png)
 
 # Usage:
 	1) Download PRAW. Follow instructions here: http://praw.readthedocs.io/en/latest/getting_started/installation.html.
