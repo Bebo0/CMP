@@ -65,16 +65,12 @@ class Predictor:
 	def addScores(self, aos, karma, time, sentiment):
 
 		""" Adds the mentions, karma, and sentiment scores of all strings in given array to counters
-
 		Arguments:
 			aos       {ArrayOfStrings} -- contains all the words (cryptocurrency names or symbols) to be added to counters
 			karma     {Integer}        -- the karma score of the post/comment containing  the coin's name or symbol
 			time      {Integer}        -- the time posted of the post/comment containing  the coin's name or symbol
 			sentiment {Integer}        -- the sentiment score of the post/comment containing  the coin's name or symbol
 		"""
-
-            # filters words so that only cryptocurrency names or symbols will be added to counter
-
 		if not self.plotSymbols:
 			wsf = []
 			for word in aos:
@@ -261,6 +257,8 @@ class Predictor:
 		ax.bar(list(range(len(tempList))), y_axisCoinScores, 0.5, align='center', color='skyblue') 
 		# ax.grid() 
 		ax.set_title('Rankings')
+		plt.xlabel('Coin Name')
+		plt.ylabel('Score')
 		plt.xticks(list(range(len(tempList))), x_axisCoinNames, size='small')
 		plt.show()
 
